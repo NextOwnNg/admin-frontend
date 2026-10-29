@@ -4,7 +4,7 @@ import { IdleTimeoutModal } from '@/components/layout/IdleTimeoutModal'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { SkipLink } from '@/components/layout/SkipLink'
 import { TopBar } from '@/components/layout/TopBar'
-import { signOutAndClear } from '@/features/auth/api/useSignOut'
+import { endSession } from '@/features/auth/api/useSignOut'
 import { useIdleTimer } from '@/hooks/useIdleTimer'
 import { useSessionStore } from '@/stores/session'
 
@@ -17,7 +17,7 @@ export function AdminLayout() {
   const idleTimeoutSeconds = useSessionStore((s) => s.idleTimeoutSeconds)
   const idle = useIdleTimer({
     timeoutSeconds: idleTimeoutSeconds,
-    onTimeout: () => void signOutAndClear(queryClient),
+    onTimeout: () => endSession(queryClient),
   })
 
   return (

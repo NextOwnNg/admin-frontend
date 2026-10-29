@@ -173,7 +173,51 @@ describe('expired session (Review Focus 4)', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Sign in to NextOwn Admin' })).toBeInTheDocument()
-    expect(new Set(signInVisits)).toEqual(new Set(['?next=%2Freports']))
+    expect(signInVisits).toEqual(['?next=%2Freports'])
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+describe('final review fixes', () => {
+  it('clears cached records when the session re-check finds the session has ended', async () => {
+    await signInAs('moderator')
+    const { queryClient } = renderWithProviders(routes, { initialPath: '/reports' })
+    await screen.findByRole('heading', { name: 'Reports page' })
+    queryClient.setQueryData(['admin', 'cases'], [{ id: 'NX-1' }])
+
+    staffDb.expireSession()
+    await act(() => queryClient.invalidateQueries({ queryKey: ['admin', 'session'] }))
+
+    expect(await screen.findByRole('heading', { name: 'Sign in to NextOwn Admin' })).toBeInTheDocument()
+    expect(queryClient.getQueryData(['admin', 'cases'])).toBeUndefined()
+  })
+
+  it('says so when signing out fails, and keeps the operator where they are', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/reports' })
+    await screen.findByRole('heading', { name: 'Reports page' })
+    server.use(http.post('/api/admin/auth/sign-out', () => HttpResponse.json({ code: 'X' }, { status: 503 })))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('You weren’t signed out.')
+    expect(screen.getByRole('heading', { name: 'Reports page' })).toBeInTheDocument()
+  })
+
+  it('keeps the console mounted behind the larger-screen notice', async () => {
+    const wide = window.matchMedia
+    window.matchMedia = (query: string) => ({ ...wide(query), matches: query.includes('max-width') })
+    try {
+      await signInAs('moderator')
+      const { container } = renderWithProviders(routes, { initialPath: '/reports' })
+
+      expect(await screen.findByRole('heading', { name: 'Use a larger screen' })).toBeInTheDocument()
+      await vi.waitFor(() =>
+        expect([...container.querySelectorAll('h1')].map((h) => h.textContent)).toContain('Reports page'),
+      )
+      expect(screen.queryByRole('heading', { name: 'Reports page' })).not.toBeInTheDocument()
+    } finally {
+      window.matchMedia = wide
+    }
   })
 })

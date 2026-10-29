@@ -54,3 +54,20 @@ describe('useIdleTimer (PRD §3.5)', () => {
     expect(onTimeout).not.toHaveBeenCalled()
   })
 })
+
+describe('useIdleTimer across tabs', () => {
+  it('counts activity in another tab of the console', async () => {
+    vi.useRealTimers()
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] })
+    const otherTab = new BroadcastChannel('nextown-admin-activity')
+    const { result } = renderHook(() => useIdleTimer({ timeoutSeconds: 120, onTimeout: vi.fn() }))
+
+    advance(50)
+    otherTab.postMessage(Date.now())
+    await new Promise((resolve) => setTimeout(resolve, 20))
+    advance(50)
+
+    expect(result.current.warning).toBe(false)
+    otherTab.close()
+  })
+})

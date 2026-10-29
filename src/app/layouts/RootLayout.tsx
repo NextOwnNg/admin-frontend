@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { Outlet, ScrollRestoration, useHref, useNavigate } from 'react-router'
 import { SmallScreenNotice } from '@/components/layout/SmallScreenNotice'
-import { signOutAndClear } from '@/features/auth/api/useSignOut'
+import { endSession } from '@/features/auth/api/useSignOut'
 import { NARROW_SCREEN, useMediaQuery } from '@/hooks/useMediaQuery'
 import { onAuthExpired } from '@/lib/api/client'
 
@@ -17,13 +17,15 @@ export function RootLayout() {
   const narrow = useMediaQuery(NARROW_SCREEN)
 
   // The guards then send the operator to sign in with `next`; repeated 401s only clear what's already gone
-  useEffect(() => onAuthExpired(() => void signOutAndClear(queryClient, { callServer: false })), [queryClient])
+  useEffect(() => onAuthExpired(() => endSession(queryClient, { callServer: false })), [queryClient])
 
-  if (narrow) return <SmallScreenNotice />
-
+  // Below 768px the notice covers the console, which stays mounted (and inert) so resizing loses nothing
   return (
     <AriaRouterProvider navigate={(to, options) => void navigate(to, options)} useHref={useHref}>
-      <Outlet />
+      {narrow && <SmallScreenNotice />}
+      <div inert={narrow} aria-hidden={narrow || undefined} className="contents">
+        <Outlet />
+      </div>
       <ScrollRestoration />
     </AriaRouterProvider>
   )
