@@ -1,0 +1,90 @@
+/* Inter variable font with optical-size axis (Inter Display at large sizes); self-hosted */
+@import '@fontsource-variable/inter/opsz.css';
+
+/* Tailwind CSS v4 + HeroUI v3 styles */
+@import '@heroui/styles';
+
+/* NextOwn brand tokens, Tailwind theme and HeroUI overrides */
+@import './tokens.css';
+@import './theme.css';
+@import './heroui-overrides.css';
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-body text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  /* No single word stranded on a paragraph's last line */
+  p,
+  li,
+  dd {
+    text-wrap: pretty;
+  }
+
+  /* Amounts, IDs and times compare precisely with tabular figures (Brand §3.1) */
+  .tabular,
+  [data-tabular] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Browser surfaces carry the brand too */
+  ::selection {
+    background: color-mix(in oklab, var(--nx-teal) 22%, transparent);
+    color: var(--nx-ink);
+  }
+
+  input,
+  textarea {
+    caret-color: var(--nx-teal);
+  }
+
+  a {
+    text-underline-offset: 0.2em;
+    text-decoration-thickness: 1px;
+  }
+
+  html {
+    scrollbar-color: color-mix(in oklab, var(--nx-slate) 40%, transparent) transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* CSS motion (Brand §5: 200ms ease-out). The reduced-motion rule above collapses it. */
+@keyframes nx-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@utility animate-rise {
+  animation: nx-rise 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}

@@ -1,0 +1,9 @@
+dist
+coverage
+node_modules
+package-lock.json
+public/mockServiceWorker.js
+.impeccable
+.superpowers
+# Product docs are written by hand; keep their tables and line breaks as authored
+*.md

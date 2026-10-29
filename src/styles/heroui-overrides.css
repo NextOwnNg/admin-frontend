@@ -1,0 +1,99 @@
+/*
+ * Brand overrides on HeroUI component defaults (Brand §5, §8).
+ * Kept in the components layer so per-instance Tailwind utilities still win.
+ */
+
+@layer components {
+  /* Buttons: 48px controls, 12px control radius, 16/24 semibold labels */
+  .button {
+    @apply h-control rounded-control px-6 text-body font-semibold md:h-control;
+    transition-duration: var(--nx-motion-fast);
+  }
+
+  /* Compact: 40px controls inside table rows and filter bars; targets stay 44px with padding (PRD §4.3) */
+  .button--compact {
+    @apply h-control-compact px-4 text-compact md:h-control-compact;
+  }
+
+  .button--sm {
+    @apply h-touch px-4 md:h-touch;
+  }
+
+  .button--lg {
+    @apply h-control md:h-control;
+  }
+
+  .button--icon-only {
+    @apply size-control px-0 md:size-control;
+  }
+
+  .button--icon-only.button--sm {
+    @apply size-touch md:size-touch;
+  }
+
+  /* Secondary: white surface, Teal border and label (Counter, Save, Review terms) */
+  .button--secondary {
+    @apply border border-action;
+    --button-bg: var(--nx-paper);
+    --button-bg-hover: var(--nx-mint);
+    --button-bg-pressed: var(--nx-mint);
+    --button-fg: var(--nx-teal);
+  }
+
+  /* Tertiary: text action in Teal, with just enough padding for its hover fill */
+  .button--tertiary {
+    @apply px-3;
+    --button-bg: transparent;
+    --button-bg-hover: var(--nx-mint);
+    --button-bg-pressed: var(--nx-mint);
+    --button-fg: var(--nx-teal);
+  }
+
+  /* Fields: 48px height, 16px text at every breakpoint (avoids iOS zoom), visible outline */
+  .input,
+  .textarea {
+    @apply text-body sm:text-body;
+  }
+
+  .input {
+    @apply min-h-control;
+  }
+}
+
+/* Brand form input used by TextField / MoneyField / PhoneField */
+@layer components {
+  .field-input {
+    @apply block h-control w-full rounded-control border border-border bg-field px-4 text-body text-ink;
+    caret-color: var(--nx-teal);
+    transition:
+      border-color var(--nx-motion-fast) ease-out,
+      box-shadow var(--nx-motion-fast) ease-out;
+
+    &::placeholder {
+      color: var(--nx-slate);
+      opacity: 1;
+    }
+
+    &:hover:not(:focus) {
+      border-color: color-mix(in oklab, var(--nx-border) 60%, var(--nx-slate));
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--nx-teal);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-teal) 22%, transparent);
+    }
+
+    &[aria-invalid='true'] {
+      border-color: var(--nx-danger);
+    }
+
+    &[aria-invalid='true']:focus {
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--nx-danger) 20%, transparent);
+    }
+
+    &:disabled {
+      @apply cursor-not-allowed bg-cloud text-muted;
+    }
+  }
+}

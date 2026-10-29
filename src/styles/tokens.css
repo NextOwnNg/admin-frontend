@@ -1,0 +1,111 @@
+/* NextOwn Brand Kit v0.9 */
+/*
+ * NextOwn admin design tokens — implements Brand Kit & Design System v0.9
+ * Source of truth: docs/NextOwn Brand Kit and Design System.md
+ *
+ * Any change here starts with a Brand Kit version bump (Brand §9.1) and must be
+ * mirrored in the client-frontend repository. Components never use raw hex values;
+ * they use the Tailwind theme names defined in theme.css.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── Brand palette (Brand §2) ─────────────────────────────── */
+  --nx-ink: #142d32; /* Primary text, dark surfaces, logo — 14.47:1 on white */
+  --nx-teal: #0b6159; /* Exchange Teal: primary action, links — white text 7.32:1 */
+  --nx-teal-hover: #084b46; /* Hovered/pressed primary — white text 9.98:1 */
+  --nx-gold: #f9bb55; /* Warm Gold: highlights only, Ink text only (8.45:1) */
+  --nx-cloud: #f7f9f7; /* Page background */
+  --nx-paper: #ffffff; /* Cards and overlays */
+  --nx-mint: #e8f4ef; /* Info surface, low-emphasis sections */
+  --nx-slate: #486067; /* Secondary copy — 6.68:1 on white */
+  --nx-border: #d6e2de; /* Dividers and input outlines; never text */
+
+  /* ── Semantic status (Brand §2, always paired with text + icon) ── */
+  --nx-success: #147d52;
+  --nx-warning: #9a5900;
+  --nx-danger: #b42318;
+  --nx-info: #2453a6;
+
+  /* ── Shape (Brand §5) ─────────────────────────────────────── */
+  --nx-radius-sm: 8px;
+  --nx-radius-control: 12px;
+  --nx-radius-card: 16px;
+
+  /* ── Elevation (Brand §5) ─────────────────────────────────── */
+  --nx-shadow-card: 0 2px 12px rgba(20, 45, 50, 0.06);
+  --nx-shadow-overlay: 0 14px 36px rgba(20, 45, 50, 0.18);
+
+  /* ── Motion (Brand §5) ────────────────────────────────────── */
+  --nx-motion-fast: 120ms;
+  --nx-motion-standard: 200ms;
+  --nx-motion-slow: 320ms;
+  --nx-ease: cubic-bezier(0.16, 1, 0.3, 1); /* ease-out */
+
+  /* ── Controls (Brand §5, §8) ──────────────────────────────── */
+  --nx-control-height: 48px;
+  --nx-touch-target: 44px;
+  --nx-control-compact: 40px; /* table rows and filter bars (PRD §4.3) */
+
+  /* ── Admin layout (PRD §4.3) ──────────────────────────────── */
+  --nx-sidebar-width: 240px;
+  --nx-sidebar-collapsed: 72px;
+  --nx-topbar-height: 64px;
+
+  /* ── HeroUI theme mapping ─────────────────────────────────────
+   * HeroUI v3 is themed through these variables. Its "accent" is the
+   * primary interactive colour, so it maps to Exchange Teal. Warm Gold is
+   * exposed separately as "highlight" (theme.css) so it never leaks into
+   * HeroUI's interactive or status styles.
+   * The pilot ships a light theme only.
+   */
+  --background: var(--nx-cloud);
+  --foreground: var(--nx-ink);
+
+  --surface: var(--nx-paper);
+  --surface-foreground: var(--nx-ink);
+  --surface-secondary: var(--nx-mint);
+  --surface-secondary-foreground: var(--nx-ink);
+  --surface-tertiary: var(--nx-cloud);
+  --surface-tertiary-foreground: var(--nx-ink);
+
+  --overlay: var(--nx-paper);
+  --overlay-foreground: var(--nx-ink);
+
+  --muted: var(--nx-slate);
+
+  --default: var(--nx-mint);
+  --default-foreground: var(--nx-ink);
+
+  --accent: var(--nx-teal);
+  --accent-foreground: var(--nx-paper);
+  --accent-hover: var(--nx-teal-hover);
+
+  --success: var(--nx-success);
+  --success-foreground: var(--nx-paper);
+  --warning: var(--nx-warning);
+  --warning-foreground: var(--nx-paper);
+  --danger: var(--nx-danger);
+  --danger-foreground: var(--nx-paper);
+
+  --border: var(--nx-border);
+  --separator: var(--nx-border);
+  --focus: var(--nx-teal);
+  --link: var(--nx-teal);
+
+  --field-background: var(--nx-paper);
+  --field-foreground: var(--nx-ink);
+  --field-placeholder: var(--nx-slate);
+  --field-border: var(--nx-border);
+  --field-border-width: 1px;
+  --field-radius: var(--nx-radius-control);
+
+  --radius: var(--nx-radius-sm); /* HeroUI scale: lg 8 · xl 12 · 2xl 16 · 3xl 24 */
+
+  --surface-shadow: var(--nx-shadow-card);
+  --overlay-shadow: var(--nx-shadow-overlay);
+  --field-shadow: none;
+
+  --backdrop: rgba(20, 45, 50, 0.5);
+}

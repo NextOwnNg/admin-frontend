@@ -1,0 +1,55 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+*.tsbuildinfo
+.vite
+.vitest
+
+# Test output
+coverage
+*.lcov
+test-results
+
+# Environment: real values stay local. .env.example and .env.development
+# (mock API settings, no secrets) are committed.
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Agent tooling scratch (design decisions in .impeccable stay tracked)
+.superpowers/
+docs/superpowers/
+.impeccable/hook.cache.json
+.impeccable/hook.pending.json
+.impeccable/config.local.json
+.impeccable/questions/
+.impeccable/review/
+
+# Lint and format caches
+.eslintcache
+.prettiercache
