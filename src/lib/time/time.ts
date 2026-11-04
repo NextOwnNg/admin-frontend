@@ -48,3 +48,12 @@ export function timeAgo(iso: string, now: number): string {
 export function withRelative(iso: string, now: number): string {
   return `${timeAgo(iso, now)} · ${formatWAT(iso)}`
 }
+
+/** `"Due in 42 min"`, `"Due in 3 h"`, `"Due in 2 days"`, or `"Overdue"` once past. */
+export function dueText(iso: string, now: number): string {
+  const left = Date.parse(iso) - now
+  if (left <= 0) return 'Overdue'
+  if (left < HOUR) return `Due in ${Math.max(1, Math.floor(left / MINUTE))} min`
+  if (left < 48 * HOUR) return `Due in ${Math.floor(left / HOUR)} h`
+  return `Due in ${Math.floor(left / (24 * HOUR))} days`
+}

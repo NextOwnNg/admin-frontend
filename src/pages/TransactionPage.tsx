@@ -1,13 +1,82 @@
-import { useParams } from 'react-router'
-import { PlaceholderPage } from '@/components/layout/PlaceholderPage'
+import { useState } from 'react'
+import { useParams, useSearchParams } from 'react-router'
+import { AuditEntry } from '@/components/domain/AuditEntry'
+import { TransactionStatusBadge } from '@/components/domain/TransactionStatusBadge'
+import { PageHead } from '@/components/seo/PageHead'
+import { Banner } from '@/components/ui/Banner'
+import { ErrorState, PermissionDenied, TableSkeleton } from '@/components/ui/States'
+import { HistorySection } from '@/features/cases/components/HistorySection'
+import { useTransaction } from '@/features/transactions/api/useTransaction'
+import { ConfirmationsSection } from '@/features/transactions/components/ConfirmationsSection'
+import { ReservationsSection } from '@/features/transactions/components/ReservationsSection'
+import { SnapshotSection } from '@/features/transactions/components/SnapshotSection'
+import { TransactionPanel } from '@/features/transactions/components/TransactionPanel'
+import { VersionsSection } from '@/features/transactions/components/VersionsSection'
+import { isForbidden, isNotFound } from '@/lib/api/error-message'
+import type { AuditEntry as AuditEntryData } from '@/lib/api/types/audit'
+import { NotFoundPage } from '@/pages/NotFoundPage'
 
+const CASE_ID = /^[A-Z]{2}-\d{1,12}$/
+
+/** What both people agreed and confirmed, read-only (UX-28, ADM-FE-04). */
 export function TransactionPage() {
   const { id = '' } = useParams()
+  const [params] = useSearchParams()
+  // The case this was opened from authorises other staff (design §9a.2); anything malformed is ignored
+  const caseParam = params.get('case')
+  const caseId = caseParam && CASE_ID.test(caseParam) ? caseParam : undefined
+  const query = useTransaction(id, caseId)
+  const [recorded, setRecorded] = useState<AuditEntryData | null>(null)
+
+  if (isForbidden(query.error)) {
+    return (
+      <>
+        <PageHead title="No permission" />
+        <PermissionDenied />
+      </>
+    )
+  }
+  if (isNotFound(query.error)) return <NotFoundPage />
+  if (query.isError && !query.data) {
+    return (
+      <>
+        <PageHead title="Transaction" />
+        <ErrorState onRetry={() => void query.refetch()} />
+      </>
+    )
+  }
+
+  const tx = query.data
   return (
-    <PlaceholderPage
-      title={`Transaction ${id}`}
-      phase="B"
-      summary="The accepted agreement snapshot, every offer version, each participant's confirmation and the audit trail."
-    />
+    <>
+      <PageHead title={`Transaction ${id}`} />
+      {!tx ? (
+        <TableSkeleton rows={6} columns={2} />
+      ) : (
+        <div className="flex flex-col gap-6">
+          <header className="flex flex-wrap items-center gap-3">
+            <h1 className="text-h1 text-ink tabular-nums">Transaction {tx.id}</h1>
+            <TransactionStatusBadge status={tx.status} />
+          </header>
+          {recorded && (
+            <Banner tone="success" title="Recorded">
+              <AuditEntry entry={recorded} />
+            </Banner>
+          )}
+          <div className="grid gap-6 detail:grid-cols-12 detail:items-start">
+            <div className="detail:sticky detail:top-[calc(var(--nx-topbar-height)+24px)] detail:order-last detail:col-span-4">
+              <TransactionPanel tx={tx} caseId={caseId} onRecorded={setRecorded} />
+            </div>
+            <div className="flex min-w-0 flex-col gap-6 detail:col-span-8">
+              <SnapshotSection tx={tx} />
+              <VersionsSection tx={tx} />
+              <ConfirmationsSection tx={tx} />
+              <ReservationsSection tx={tx} />
+              <HistorySection title="Cancellation, dispute and audit history" entries={tx.history} />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

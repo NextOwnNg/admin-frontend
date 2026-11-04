@@ -10,12 +10,37 @@ type TablePrefsState = {
   setPrefs: (tableId: string, prefs: TablePrefs) => void
 }
 
+const isTablePrefs = (value: unknown): value is TablePrefs => {
+  if (typeof value !== 'object' || value === null) return false
+  const { hiddenColumns, density } = value as Partial<TablePrefs>
+  return (
+    Array.isArray(hiddenColumns) &&
+    hiddenColumns.every((c) => typeof c === 'string') &&
+    (density === 'compact' || density === 'comfortable')
+  )
+}
+
+/** Keeps only stored entries with the right shape: storage is edited by hand and by older versions. */
+function validPrefs(stored: unknown): Record<string, TablePrefs> {
+  if (typeof stored !== 'object' || stored === null || Array.isArray(stored)) return {}
+  return Object.fromEntries(Object.entries(stored).filter(([, prefs]) => isTablePrefs(prefs)))
+}
+
 export const useTablePrefs = create<TablePrefsState>()(
   persist(
     (set) => ({
       prefs: {},
       setPrefs: (tableId, prefs) => set((state) => ({ prefs: { ...state.prefs, [tableId]: prefs } })),
     }),
-    { name: 'nextown-admin-table-prefs', version: 1, storage: safeJsonStorage },
+    {
+      name: 'nextown-admin-table-prefs',
+      version: 1,
+      storage: safeJsonStorage,
+      partialize: ({ prefs }) => ({ prefs }),
+      merge: (persisted, current) => ({
+        ...current,
+        prefs: validPrefs((persisted as { prefs?: unknown } | undefined)?.prefs),
+      }),
+    },
   ),
 )

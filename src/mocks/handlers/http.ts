@@ -5,9 +5,14 @@ export const error = (
   status: number,
   code: string,
   message: string,
-  extra: { fieldErrors?: Record<string, string>; retryAfter?: number } = {},
+  extra: { fieldErrors?: Record<string, string>; retryAfter?: number; details?: Record<string, unknown> } = {},
 ) =>
   HttpResponse.json(
-    { code, message, ...(extra.fieldErrors && { field_errors: extra.fieldErrors }) },
+    {
+      code,
+      message,
+      ...(extra.fieldErrors && { field_errors: extra.fieldErrors }),
+      ...(extra.details && { details: extra.details }),
+    },
     { status, headers: extra.retryAfter ? { 'Retry-After': String(extra.retryAfter) } : undefined },
   )

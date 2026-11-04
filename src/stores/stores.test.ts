@@ -61,4 +61,28 @@ describe('preference stores survive broken storage', () => {
     useTablePrefs.getState().setPrefs('reports', { hiddenColumns: ['assignee'], density: 'compact' })
     expect(useTablePrefs.getState().prefs.reports).toEqual({ hiddenColumns: ['assignee'], density: 'compact' })
   })
+
+  it('rehydrates broken table preferences as none', async () => {
+    localStorage.setItem('nextown-admin-table-prefs', JSON.stringify({ state: { prefs: null }, version: 1 }))
+    await useTablePrefs.persist.rehydrate()
+    expect(useTablePrefs.getState().prefs).toEqual({})
+  })
+
+  it('drops stored table preferences with the wrong shape', async () => {
+    localStorage.setItem(
+      'nextown-admin-table-prefs',
+      JSON.stringify({
+        state: {
+          prefs: {
+            reports: { hiddenColumns: ['age'], density: 'compact' },
+            audit: { hiddenColumns: [], density: 'huge' },
+            cases: { hiddenColumns: 'all', density: 'compact' },
+          },
+        },
+        version: 1,
+      }),
+    )
+    await useTablePrefs.persist.rehydrate()
+    expect(useTablePrefs.getState().prefs).toEqual({ reports: { hiddenColumns: ['age'], density: 'compact' } })
+  })
 })
