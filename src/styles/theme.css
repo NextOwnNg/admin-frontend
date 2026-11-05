@@ -79,5 +79,6 @@
   /* Brand breakpoints (Brand §5). Tailwind defaults stay because HeroUI uses them. */
   --breakpoint-tablet: 48rem; /* 768px */
   --breakpoint-desktop: 64rem; /* 1024px */
+  --breakpoint-detail: 80rem; /* 1280px: case and transaction pages go two-column */
   --breakpoint-wide: 90rem; /* 1440px */
 }

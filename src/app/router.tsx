@@ -107,11 +107,12 @@ export const routes: RouteObject[] = [
                 handle: crumb('Dashboard'),
                 lazy: () => import('@/pages/DashboardPage').then((m) => ({ Component: m.DashboardPage })),
               }),
+              // Unknown addresses are console addresses: staff get not-found in the shell, others sign in
+              { path: '*', element: <NotFoundPage /> },
             ],
           },
         ],
       },
-      { path: '*', element: <NotFoundPage /> },
     ],
   },
 ]

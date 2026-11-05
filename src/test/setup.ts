@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
+import { reseed } from '@/mocks/db/store'
 import { staffDb } from '@/mocks/db/staff'
 import { useSessionStore } from '@/stores/session'
 import { useTablePrefs } from '@/stores/tablePrefs'
@@ -34,6 +35,7 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => {
   server.resetHandlers()
   staffDb.reset()
+  reseed()
   // Client stores outlive a render; every test starts with no session check and default preferences
   useSessionStore.setState(useSessionStore.getInitialState())
   useUiStore.setState(useUiStore.getInitialState())

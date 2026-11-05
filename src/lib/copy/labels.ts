@@ -18,3 +18,14 @@ export const ENV_LABELS: Record<EnvName, string> = {
   staging: 'STAGING',
   production: 'PRODUCTION',
 }
+
+/** What a report or action is about (design §4.2 type filter) */
+export const TARGET_TYPE_LABELS = {
+  account: 'Account',
+  listing: 'Listing',
+  comment: 'Comment',
+  feed_post: 'Feed post',
+  message: 'Message',
+  transaction: 'Transaction',
+  case: 'Case',
+} as const

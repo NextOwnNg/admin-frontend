@@ -80,9 +80,17 @@ describe('route tree', () => {
     )
   })
 
-  it('shows a generic not-found page for unknown addresses', async () => {
+  it('sends a signed-out visitor at an unknown address to sign in, revealing nothing', async () => {
+    renderWithProviders(routes, { initialPath: '/nope' })
+
+    expect(await signInHeading()).toBeInTheDocument()
+  })
+
+  it('shows staff the not-found page inside the console at unknown addresses', async () => {
+    await signInAs('moderator')
     renderWithProviders(routes, { initialPath: '/nope' })
 
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
   })
 })
