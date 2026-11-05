@@ -5,7 +5,7 @@ import type { CaseStatus, Severity } from '@/lib/copy/status'
 
 /** Moderation cases (design §4.2, §4.3, §6). */
 
-export type Redaction = null | 'removed_by_author' | 'hidden_by_moderation'
+export type Redaction = null | 'removed_by_author' | 'hidden_by_moderation' | 'removed_by_moderation'
 
 export type PartyRef = {
   userId: string

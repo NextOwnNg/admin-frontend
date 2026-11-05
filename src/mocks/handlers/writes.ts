@@ -1,6 +1,14 @@
 import { http, HttpResponse, type RequestHandler } from 'msw'
 import type { AuditEntry } from '@/lib/api/types/audit'
-import type { AssignBody, CaseActionBody, CaseActionId, NoteBody, RevealBody } from '@/lib/api/types/cases'
+import { CLOSE_OUTCOMES } from '@/features/actions/definitions'
+import type {
+  AssignBody,
+  CaseActionBody,
+  CaseActionId,
+  CloseOutcome,
+  NoteBody,
+  RevealBody,
+} from '@/lib/api/types/cases'
 import type { TargetType } from '@/lib/api/types/reference'
 import type { ReleaseBody, ResolutionBody, TransactionOutcome } from '@/lib/api/types/transactions'
 import type { StaffRole } from '@/lib/copy/labels'
@@ -141,8 +149,11 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
     case 'hide':
     case 'remove':
       before.content = 'visible'
-      c.content = { ...c.content!, text: null, redaction: 'hidden_by_moderation' }
-      c.redaction = 'hidden_by_moderation'
+      {
+        const redaction = body.action === 'hide' ? 'hidden_by_moderation' : 'removed_by_moderation'
+        c.content = { ...c.content!, text: null, redaction }
+        c.redaction = redaction
+      }
       after.content = body.action === 'hide' ? 'hidden' : 'removed'
       break
     case 'restrict':
@@ -172,7 +183,7 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
       c.notes.push({
         id: `${c.id}-note-${c.notes.length + 1}`,
         author: viewer.displayName,
-        body: `Proposed outcome: ${String(body.outcome)}. ${body.note ?? ''}`.trim(),
+        body: `Proposed outcome: ${CLOSE_OUTCOMES[body.outcome as CloseOutcome] ?? String(body.outcome)}. ${body.note ?? ''}`.trim(),
         at: new Date().toISOString(),
       })
       after.proposedOutcome = body.outcome

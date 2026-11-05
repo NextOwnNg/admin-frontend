@@ -1,8 +1,10 @@
 import { Dropdown, Table } from '@heroui/react'
 import { EllipsisVertical } from 'lucide-react'
 import type { ReactNode } from 'react'
+import { TableOptions } from '@/components/data/TableOptions'
 import { ErrorState, PermissionDenied, TableSkeleton } from '@/components/ui/States'
 import { cx } from '@/lib/cx'
+import { DEFAULT_TABLE_PREFS, useTablePrefs } from '@/stores/tablePrefs'
 
 export type Column<T> = {
   id: string
@@ -10,6 +12,8 @@ export type Column<T> = {
   sortable?: boolean
   cell: (row: T) => ReactNode
   className?: string
+  /** Whether Table options may hide it (default true; the first column is never hidden) */
+  hideable?: boolean
 }
 
 export type SortState = { column: string; direction: 'ascending' | 'descending' }
@@ -30,6 +34,8 @@ type DataTableProps<T> = {
   rowActions?: (row: T) => RowAction[]
   /** Shown when the request succeeded with no rows */
   empty: ReactNode
+  /** Remembers density and hidden columns under this id, with a Table options menu */
+  tableId?: string
 }
 
 /**
@@ -48,21 +54,31 @@ export function DataTable<T>({
   rowClassName,
   rowActions,
   empty,
+  tableId,
 }: DataTableProps<T>) {
+  const stored = useTablePrefs((s) => (tableId ? s.prefs[tableId] : undefined))
+  const prefs = stored ?? DEFAULT_TABLE_PREFS
+  const isHideable = (column: Column<T>, index: number) => index > 0 && column.hideable !== false
+  const visible = columns.filter(
+    (column, index) => !isHideable(column, index) || !prefs.hiddenColumns.includes(column.id),
+  )
+
   if (status === 'pending' && !rows) return <TableSkeleton columns={columns.length} />
   if (status === 'error' && !rows) return <ErrorState onRetry={onRetry} />
   if (status === 'forbidden') return <PermissionDenied />
   if (!rows || rows.length === 0) return <>{empty}</>
 
   const allColumns: Column<T>[] = rowActions
-    ? [...columns, { id: '__actions', header: 'Actions', cell: () => null, className: 'w-14' }]
-    : columns
+    ? [...visible, { id: '__actions', header: 'Actions', cell: () => null, className: 'w-14' }]
+    : visible
+  const cellPadding = prefs.density === 'compact' ? 'py-1.5' : 'py-3'
 
-  return (
+  const table = (
     <Table className="rounded-card border border-border bg-paper">
       <Table.ScrollContainer className="max-h-[70dvh] overflow-auto">
         <Table.Content
           aria-label={label}
+          data-density={prefs.density}
           className="min-w-full"
           sortDescriptor={sort ? { column: sort.column, direction: sort.direction } : undefined}
           onSortChange={(d) => onSortChange?.({ column: String(d.column), direction: d.direction })}
@@ -96,7 +112,7 @@ export function DataTable<T>({
               return (
                 <Table.Row key={key} id={key} className={rowClassName?.(row)}>
                   {allColumns.map((column) => (
-                    <Table.Cell key={column.id} className={cx('align-top text-compact', column.className)}>
+                    <Table.Cell key={column.id} className={cx('align-top text-compact', cellPadding, column.className)}>
                       {column.id === '__actions' && rowActions ? (
                         <RowMenu rowKey={key} actions={rowActions(row)} />
                       ) : (
@@ -111,6 +127,18 @@ export function DataTable<T>({
         </Table.Content>
       </Table.ScrollContainer>
     </Table>
+  )
+  if (!tableId) return table
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-end">
+        <TableOptions
+          tableId={tableId}
+          columns={columns.map((c, index) => ({ id: c.id, header: c.header, hideable: isHideable(c, index) }))}
+        />
+      </div>
+      {table}
+    </div>
   )
 }
 

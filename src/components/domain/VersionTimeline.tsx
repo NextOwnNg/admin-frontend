@@ -1,10 +1,11 @@
-import { Ban, CircleCheck, Clock, History, Undo2, type LucideIcon } from 'lucide-react'
+import { Ban, CircleCheck, Clock, History, Hourglass, Undo2, type LucideIcon } from 'lucide-react'
 import { OfferSummary } from '@/components/domain/OfferSummary'
 import { StatusBadge, type StatusTone } from '@/components/ui/StatusBadge'
 import type { OfferVersion } from '@/lib/api/types/transactions'
 import { formatWAT } from '@/lib/time/time'
 
 const STATE: Record<OfferVersion['state'], { label: string; icon: LucideIcon; tone: StatusTone }> = {
+  pending: { label: 'Awaiting reply', icon: Hourglass, tone: 'info' },
   accepted: { label: 'Accepted', icon: CircleCheck, tone: 'success' },
   superseded: { label: 'Superseded', icon: History, tone: 'neutral' },
   expired: { label: 'Expired', icon: Clock, tone: 'neutral' },

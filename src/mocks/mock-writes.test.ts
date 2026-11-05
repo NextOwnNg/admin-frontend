@@ -29,6 +29,16 @@ const hideComment = (version: number): CaseActionBody => ({
 })
 
 describe('mock admin API writes (design §4.5, §5.5, §9a)', () => {
+  it('records a removal as removed by moderation, not hidden (Phase C1 review)', async () => {
+    await signInAs('moderator')
+    const before = await getCase(SCENARIO.abusiveComment)
+    const { data } = await post<CaseActionResult>(`/admin/cases/${SCENARIO.abusiveComment}/actions`, {
+      ...hideComment(before.version),
+      action: 'remove',
+    })
+    expect(data.case.content).toMatchObject({ redaction: 'removed_by_moderation', text: null })
+  })
+
   it('hides reported content with a reason and returns the audit entry (QA-19)', async () => {
     await signInAs('moderator')
     const before = await getCase(SCENARIO.abusiveComment)

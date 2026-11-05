@@ -92,6 +92,7 @@ export function QueueTable({
   return (
     <DataTable
       label="Reports"
+      tableId="queue"
       columns={columns}
       rows={rows}
       rowKey={(c) => c.id}

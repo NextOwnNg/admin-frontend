@@ -1,17 +1,20 @@
 import { Button } from '@heroui/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { LogOut, Search } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { useState } from 'react'
+import { useLocation } from 'react-router'
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs'
 import { EnvRibbon } from '@/components/layout/EnvRibbon'
 import { Banner } from '@/components/ui/Banner'
 import { signOutAndClear } from '@/features/auth/api/useSignOut'
+import { GlobalSearch } from '@/features/search/components/GlobalSearch'
 import { errorMessage } from '@/lib/api/error-message'
 import { ROLE_LABELS } from '@/lib/copy/labels'
 import { useSessionStore } from '@/stores/session'
 
 /** 64px top bar (PRD §4.3): where you are, record search, environment, who is signed in. */
 export function TopBar() {
+  const location = useLocation()
   const queryClient = useQueryClient()
   const displayName = useSessionStore((s) => s.displayName)
   const roles = useSessionStore((s) => s.roles)
@@ -35,18 +38,9 @@ export function TopBar() {
         <Breadcrumbs />
       </div>
 
-      <div className="relative hidden w-72 desktop:block" title="Search arrives in Phase C">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted"
-        />
-        <input
-          type="search"
-          disabled
-          aria-label="Search records by ID or name"
-          placeholder="Search by ID or name"
-          className="field-input h-control-compact pl-9 text-compact"
-        />
+      <div className="hidden desktop:block">
+        {/* A fresh, empty box after every navigation */}
+        <GlobalSearch key={location.key} />
       </div>
 
       <EnvRibbon />

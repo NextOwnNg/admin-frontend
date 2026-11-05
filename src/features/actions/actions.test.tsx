@@ -102,6 +102,58 @@ describe('action definitions (design §4.5)', () => {
   })
 })
 
+describe('Phase B carry-overs for actions (Phase C design §8)', () => {
+  const withStatus = (context: ActionContext, status: CaseDetail['status']): ActionContext =>
+    context.kind === 'case' ? { ...context, caseDetail: { ...context.caseDetail, status } } : context
+
+  it('does not offer Escalate on an escalated case or Request information while awaiting it', async () => {
+    await signInWithSession('moderator')
+    const context = await caseContext(SCENARIO.abusiveComment)
+    expect(actionsFor(['moderator'], withStatus(context, 'escalated')).map((a) => a.id)).not.toContain('escalate')
+    expect(actionsFor(['moderator'], withStatus(context, 'awaiting_info')).map((a) => a.id)).not.toContain(
+      'request_info',
+    )
+    expect(actionsFor(['moderator'], withStatus(context, 'assigned')).map((a) => a.id)).toEqual(
+      expect.arrayContaining(['escalate', 'request_info']),
+    )
+  })
+
+  it('never hides or removes private messages', () => {
+    expect(definition('hide').targetTypes).not.toContain('message')
+    expect(definition('remove').targetTypes).not.toContain('message')
+  })
+
+  it("doesn't promise a restore when hiding", async () => {
+    await signInWithSession('moderator')
+    const context = await caseContext(SCENARIO.abusiveComment)
+    const text = definition('hide').consequence({
+      target: { type: 'comment', id: 'C-5501', label: 'comment C-5501' },
+      values: { targetId: 'C-5501' },
+      context,
+    })
+    expect(text).not.toMatch(/restore/i)
+  })
+
+  it('records a proposed decision with the outcome in words', async () => {
+    await signInWithSession('support_agent')
+    const { data } = await apiClient.get<CaseDetail>(`/admin/cases/${SCENARIO.paymentDispute}`)
+    const { data: result } = await apiClient.post<{ case: CaseDetail }>(
+      `/admin/cases/${SCENARIO.paymentDispute}/actions`,
+      {
+        action: 'propose',
+        target: { type: 'case', id: SCENARIO.paymentDispute },
+        outcome: 'no_violation',
+        note: 'Both sides agree it was a misunderstanding.',
+        expectedVersion: data.version,
+      },
+      { headers: { 'Idempotency-Key': crypto.randomUUID() } },
+    )
+    const note = result.case.notes.at(-1)!.body
+    expect(note).toContain('No violation')
+    expect(note).not.toContain('no_violation')
+  })
+})
+
 describe('ActionDialog (ADM-FE-05)', () => {
   it.each(ACTIONS.filter((a) => a.reasonKind !== null).map((a) => [a.id, a] as const))(
     'blocks %s until a reason code is chosen (ADM-T-03)',

@@ -6,6 +6,7 @@ import { PageHead } from '@/components/seo/PageHead'
 import { Banner } from '@/components/ui/Banner'
 import { ErrorState, PermissionDenied, TableSkeleton } from '@/components/ui/States'
 import { HistorySection } from '@/features/cases/components/HistorySection'
+import { LinkedRecordsPanel } from '@/features/records/components/LinkedRecordsPanel'
 import { useTransaction } from '@/features/transactions/api/useTransaction'
 import { ConfirmationsSection } from '@/features/transactions/components/ConfirmationsSection'
 import { ReservationsSection } from '@/features/transactions/components/ReservationsSection'
@@ -65,7 +66,10 @@ export function TransactionPage() {
           )}
           <div className="grid gap-6 detail:grid-cols-12 detail:items-start">
             <div className="detail:sticky detail:top-[calc(var(--nx-topbar-height)+24px)] detail:order-last detail:col-span-4">
-              <TransactionPanel tx={tx} caseId={caseId} onRecorded={setRecorded} />
+              <div className="flex flex-col gap-6">
+                <TransactionPanel tx={tx} caseId={caseId} onRecorded={setRecorded} />
+                {tx.links && <LinkedRecordsPanel groups={tx.links} />}
+              </div>
             </div>
             <div className="flex min-w-0 flex-col gap-6 detail:col-span-8">
               <SnapshotSection tx={tx} />

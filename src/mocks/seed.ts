@@ -59,9 +59,15 @@ const HOUR = 60 * MINUTE
 /** Draft due-time targets (design §5.1, pending AD-D-03) */
 export const DUE_HOURS: Record<Severity, number> = { S1: 1, S2: 4, S3: 24, S4: 72 }
 
-type Member = { userId: string; displayName: string; memberSince: string; priorActions90d: number; phone: string }
+export type Member = {
+  userId: string
+  displayName: string
+  memberSince: string
+  priorActions90d: number
+  phone: string
+}
 
-const MEMBERS = {
+export const MEMBERS = {
   ada: {
     userId: 'u-ada',
     displayName: 'Ada O.',
@@ -546,7 +552,8 @@ export function buildSeed(now: number) {
             ? null
             : {
                 type,
-                id: `${type === 'account' ? 'u' : type.slice(0, 1).toUpperCase()}-${7000 + i}`,
+                // An account report is about the reported member themselves
+                id: type === 'account' ? reported.userId : `${type.slice(0, 1).toUpperCase()}-${7000 + i}`,
                 text: summary,
                 redaction: null,
               },

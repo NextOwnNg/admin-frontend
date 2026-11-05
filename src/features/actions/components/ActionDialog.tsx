@@ -165,7 +165,7 @@ function ActionForm({
       return { version: fresh.version, history: fresh.history }
     }
     const fresh = await queryClient.fetchQuery({
-      queryKey: transactionQueryKey(context.tx.id),
+      queryKey: transactionQueryKey(context.tx.id, context.caseId),
       queryFn: () => getTransaction(context.tx.id, context.caseId),
       staleTime: 0,
     })

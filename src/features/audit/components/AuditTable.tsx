@@ -77,6 +77,7 @@ export function AuditTable({
   return (
     <DataTable
       label="Moderation log"
+      tableId="audit"
       columns={columns}
       rows={rows}
       rowKey={(e) => e.id}

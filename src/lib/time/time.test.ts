@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dueText, formatUTC, formatWAT, timeAgo, withRelative } from '@/lib/time/time'
+import { dueText, formatUTC, formatWAT, timeAgo, watDayEnd, watDayStart, withRelative } from '@/lib/time/time'
 
 const ISO = '2026-10-24T17:05:00Z'
 const at = (iso: string) => Date.parse(iso)
@@ -43,5 +43,18 @@ describe('dueText', () => {
     expect(dueText('2026-10-24T15:30:00Z', now)).toBe('Due in 3 h')
     expect(dueText('2026-10-27T12:00:00Z', now)).toBe('Due in 3 days')
     expect(dueText('2026-10-24T11:59:00Z', now)).toBe('Overdue')
+  })
+})
+
+describe('WAT calendar days', () => {
+  it('starts a WAT day at 23:00 UTC the day before', () => {
+    expect(watDayStart('2026-11-05')).toBe('2026-11-04T23:00:00.000Z')
+  })
+  it('ends a WAT day at 22:59:59.999 UTC', () => {
+    expect(watDayEnd('2026-11-05')).toBe('2026-11-05T22:59:59.999Z')
+  })
+  it('crosses month and year ends', () => {
+    expect(watDayStart('2027-01-01')).toBe('2026-12-31T23:00:00.000Z')
+    expect(watDayEnd('2026-12-31')).toBe('2026-12-31T22:59:59.999Z')
   })
 })

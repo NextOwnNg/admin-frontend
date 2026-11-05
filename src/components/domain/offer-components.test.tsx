@@ -93,3 +93,28 @@ describe('ConfirmationEvents (ADM-FE-04, ADM-T-01)', () => {
     await expectNoA11yViolations(container)
   })
 })
+
+describe('VersionTimeline for an open offer (Phase C)', () => {
+  it('says the latest version of a pending offer is awaiting a reply', () => {
+    render(
+      <VersionTimeline
+        versions={[
+          { number: 2, proposedBy: 'Kunle A.', at: '2026-11-05T10:00:00Z', terms: terms('None', 0), state: 'pending' },
+          { number: 1, proposedBy: 'Ada O.', at: '2026-11-05T09:00:00Z', terms: terms('None', 0), state: 'superseded' },
+        ]}
+      />,
+    )
+    expect(screen.getByText('Awaiting reply')).toBeInTheDocument()
+  })
+})
+
+describe('OfferSummary with a cash-only side (Phase C)', () => {
+  it('says a side gives no items instead of an empty box', () => {
+    const cashOnly = {
+      ...terms('OffererPays', 40_000_000),
+      gives: { participant: 'A' as const, displayName: 'Ada O.', items: [] },
+    }
+    render(<OfferSummary terms={cashOnly} />)
+    expect(screen.getByText('No items, cash only')).toBeInTheDocument()
+  })
+})

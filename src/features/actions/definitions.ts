@@ -46,7 +46,8 @@ export type ActionDefinition = {
 }
 
 const MODERATORS: StaffRole[] = ['moderator', 'administrator']
-const CONTENT: TargetType[] = ['listing', 'comment', 'feed_post', 'message']
+/** Public content: private messages are never hidden or removed from the console */
+const CONTENT: TargetType[] = ['listing', 'comment', 'feed_post']
 
 export const CLOSE_OUTCOMES: Record<CloseOutcome, string> = {
   no_violation: 'No violation',
@@ -77,7 +78,7 @@ export const ACTIONS: ActionDefinition[] = [
     fields: ['note'],
     required: [],
     confirmTitle: ({ target }) => `Hide ${target.label}?`,
-    consequence: () => "It won't be visible to members. An administrator can restore it later.",
+    consequence: () => "It won't be visible to members.",
   },
   {
     id: 'remove',
@@ -233,8 +234,17 @@ export function targetsFor(definition: ActionDefinition, context: ActionContext)
 export function actionsFor(roles: readonly StaffRole[], context: ActionContext): ActionDefinition[] {
   const allowed = ACTIONS.filter((a) => a.roles.some((r) => roles.includes(r)))
   if (context.kind === 'case') {
+    const { status } = context.caseDetail
     if (isTerminalCase(context.caseDetail)) return []
-    return allowed.filter((a) => a.id !== 'resolve' && a.id !== 'release' && targetsFor(a, context).length > 0)
+    return allowed.filter(
+      (a) =>
+        a.id !== 'resolve' &&
+        a.id !== 'release' &&
+        // Nothing to do when the case is already there
+        !(a.id === 'escalate' && status === 'escalated') &&
+        !(a.id === 'request_info' && status === 'awaiting_info') &&
+        targetsFor(a, context).length > 0,
+    )
   }
   const { tx } = context
   return allowed.flatMap((a) => {

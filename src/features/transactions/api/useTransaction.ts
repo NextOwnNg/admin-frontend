@@ -4,7 +4,7 @@ import { getTransaction, transactionQueryKey } from '@/features/transactions/api
 /** A transaction, read through its case for non-administrators (design §9a.2) */
 export function useTransaction(id: string, caseId?: string) {
   return useQuery({
-    queryKey: transactionQueryKey(id),
+    queryKey: transactionQueryKey(id, caseId),
     queryFn: ({ signal }) => getTransaction(id, caseId, { signal }),
   })
 }

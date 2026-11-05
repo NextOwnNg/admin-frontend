@@ -1,4 +1,5 @@
 import type { AuditEntry } from '@/lib/api/types/audit'
+import type { RecordLinkGroup } from '@/lib/api/types/records'
 import type { CashDirection } from '@/lib/money/money'
 import type { TransactionFlag, TransactionOutcome, TransactionStatus } from '@/lib/copy/status'
 
@@ -15,7 +16,8 @@ export type OfferVersion = {
   proposedBy: string
   at: string
   terms: OfferTerms
-  state: 'accepted' | 'superseded' | 'expired' | 'rejected' | 'withdrawn'
+  /** `pending`: the latest version of an offer still waiting for a reply */
+  state: 'pending' | 'accepted' | 'superseded' | 'expired' | 'rejected' | 'withdrawn'
 }
 
 /** A participant's own confirmation, as they reported it */
@@ -58,6 +60,8 @@ export type TransactionDetail = TransactionSummary & {
   allowedOutcomes: TransactionOutcome[]
   history: AuditEntry[]
   version: number
+  /** The participants, items and offer as records; only for staff who may browse records (Phase C) */
+  links?: RecordLinkGroup[]
 }
 
 /** `POST /admin/transactions/:id/resolution` */
