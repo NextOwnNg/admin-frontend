@@ -4,7 +4,9 @@ import type { FeedStatus, ListingMode, ListingStatus, ModerationState, OfferStat
 import type { OfferTerms, OfferVersion } from '@/lib/api/types/transactions'
 import {
   MEMBERS,
+  DUPLICATE_LISTING,
   PRICE_EDITED_LISTING_NOW_KOBO,
+  RESTRICTED_FOR_MS,
   SCENARIO,
   TX,
   type CaseRecord,
@@ -19,7 +21,6 @@ import {
 
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
-const DAY = 24 * HOUR
 
 export type MemberRec = {
   id: string
@@ -124,6 +125,8 @@ export const REC = {
   hiddenListing: 'L-5218',
   redactedFeedPost: 'F-910',
   multiVersionOffer: 'O-6201',
+  /** The earlier listing the duplicate case repeats */
+  duplicateListing: DUPLICATE_LISTING,
 } as const
 
 const EXTRA_MEMBERS: Member[] = [
@@ -232,7 +235,7 @@ export function buildRecords(now: number, base: { cases: CaseRecord[]; transacti
     displayName: m.displayName,
     area: AREAS[m.userId] ?? 'Yaba',
     joinedAt: m.memberSince,
-    restrictedUntil: m.userId === REC.restrictedMember ? iso(now + 5 * DAY) : null,
+    restrictedUntil: m.userId === REC.restrictedMember ? iso(now + RESTRICTED_FOR_MS) : null,
     phone: m.phone || null,
   }))
 
@@ -371,6 +374,34 @@ export function buildRecords(now: number, base: { cases: CaseRecord[]; transacti
       redaction: c.content.redaction,
       description: c.content.text ?? `${title}.`,
       minutesAgo: caseMinutes(c) + 3900,
+    })
+  }
+
+  // The duplicate case's listing repeats an earlier one: same seller, same item description
+  const duplicateCase = base.cases.find((c) => c.kind === 'duplicate' && c.content?.type === 'listing')
+  const repeated = duplicateCase && listings.find((l) => l.id === duplicateCase.content!.id)
+  if (duplicateCase?.duplicateOf && repeated) {
+    const itemId = `I-${duplicateCase.duplicateOf.id.slice(2)}`
+    addItem({
+      id: itemId,
+      title: repeated.title,
+      ownerId: repeated.sellerId,
+      condition: 'Used, good',
+      defects: null,
+      visibility: 'PUBLIC_LISTED',
+      minutesAgo: caseMinutes(duplicateCase) + 9000,
+    })
+    addListing({
+      id: duplicateCase.duplicateOf.id,
+      itemId,
+      sellerId: repeated.sellerId,
+      title: repeated.title,
+      askingKobo: repeated.askingKobo,
+      modes: repeated.modes,
+      status: 'ACTIVE',
+      moderation: 'clear',
+      description: repeated.description,
+      minutesAgo: caseMinutes(duplicateCase) + 8900,
     })
   }
 

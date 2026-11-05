@@ -59,6 +59,18 @@ Scenario IDs are exported as `SCENARIO`, `TX` (`src/mocks/seed.ts`) and `REC` (`
 
 The top-bar search (press `/`) finds cases, transactions and records by ID or name. Support agents only find their own cases and those cases' transactions.
 
+### Exceptions and settings
+
+| What | Where |
+| :-- | :-- |
+| Every exception queue, with counts and a next action per row | `/exceptions` (administrator or support agent) |
+| Account appeal: Segun asks for his restriction to be lifted | `NX-000233` |
+| Possible duplicate listing | `NX-000220`, repeating `L-5219` |
+| Reservation about to expire, no action needed yet | `NX-000234` / `T-000308` |
+| Pilot settings, history and the agreements notice | `/settings` (administrator); every change also appears in the moderation log |
+
+Support agents see every exception but take a row with **Assign to me** before acting on it.
+
 ## Hosting notes
 
 - `vercel.json` serves `index.html` for unknown paths, long-caches hashed assets and sets the security headers from PRD §7 (strict CSP, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `X-Robots-Tag: noindex`).

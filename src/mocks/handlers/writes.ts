@@ -15,13 +15,15 @@ import type { StaffRole } from '@/lib/copy/labels'
 import { TRANSACTION_OUTCOME, type CaseStatus, type TransactionStatus } from '@/lib/copy/status'
 import { apiBaseUrl } from '@/lib/env'
 import { auditDb } from '@/mocks/db/audit'
+import { exceptionsDb } from '@/mocks/db/exceptions'
 import { canSee, casesDb, type Viewer } from '@/mocks/db/cases'
-import { droppedAnswers, idempotentReplies } from '@/mocks/db/store'
+import { store } from '@/mocks/db/store'
 import { transactionsDb } from '@/mocks/db/transactions'
 import { REASON_CODES } from '@/mocks/fixtures/reason-codes'
 import { STAFF } from '@/mocks/fixtures/staff'
 import type { CaseRecord, TransactionRecord } from '@/mocks/seed'
 import { error } from '@/mocks/handlers/http'
+import { idempotent } from '@/mocks/handlers/idempotent'
 import { canSeeTransaction } from '@/mocks/handlers/transactions'
 import { forbidden, hasRole, notFound, signedIn } from '@/mocks/handlers/viewer'
 
@@ -35,22 +37,6 @@ const invalid = (field: string, message: string) =>
 const conflict = (version: number) =>
   error(409, 'CONFLICT', 'The record changed since it was read', { details: { version } })
 
-/**
- * Replays the first answer for a repeated Idempotency-Key; otherwise runs the write, remembers its answer,
- * and drops the answer when a test asked for a lost response (design §5.6).
- */
-async function idempotent(request: Request, recordId: string, write: () => Promise<Response> | Response) {
-  const key = request.headers.get('Idempotency-Key')
-  const replies = idempotentReplies()
-  const earlier = key ? replies.get(key) : undefined
-  if (earlier) return HttpResponse.json(earlier.body as object, { status: earlier.status })
-
-  const response = await write()
-  if (key && response.ok) replies.set(key, { status: response.status, body: await response.clone().json() })
-  if (response.ok && droppedAnswers().delete(recordId)) return HttpResponse.error()
-  return response
-}
-
 const NEXT_ACTION: Partial<Record<CaseStatus, string>> = {
   open: 'Assign an operator, then review the report',
   assigned: 'Review the report and decide what happens next',
@@ -62,6 +48,15 @@ function setStatus(c: CaseRecord, status: CaseStatus) {
   c.status = status
   c.nextAction = NEXT_ACTION[status] ?? null
 }
+
+/** Restrictions show on the member's record too */
+function setRestriction(memberId: string, until: string | null) {
+  const member = store().records.members.find((m) => m.id === memberId)
+  if (member) member.restrictedUntil = until
+}
+
+/** Whether a case is in an exception queue right now */
+const isException = (c: CaseRecord) => exceptionsDb.queueOf(c, Date.now()) !== null
 
 const isTerminal = (c: CaseRecord) => c.status === 'resolved' || c.status === 'closed'
 
@@ -139,7 +134,10 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
   if (body.action === 'restrict' && ![1, 3, 7, 30].includes(body.durationDays ?? 0)) {
     return invalid('durationDays', 'Choose how long the restriction lasts.')
   }
-  if (body.action === 'close' && !['no_violation', 'action_taken', 'duplicate'].includes(body.outcome ?? '')) {
+  if (
+    body.action === 'close' &&
+    !['no_violation', 'action_taken', 'duplicate', 'upheld'].includes(body.outcome ?? '')
+  ) {
     return invalid('outcome', 'Choose the outcome.')
   }
 
@@ -158,6 +156,7 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
       break
     case 'restrict':
       after.restrictedForDays = body.durationDays
+      setRestriction(body.target.id, new Date(Date.now() + (body.durationDays ?? 0) * 86_400_000).toISOString())
       break
     case 'warn':
       after.warning = body.message
@@ -190,6 +189,7 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
       break
     case 'lift_restriction':
       after.restricted = false
+      setRestriction(body.target.id, null)
       break
   }
   after.status = c.status
@@ -357,13 +357,17 @@ type Handler = (args: {
 }) => Promise<Response>
 
 /** Signed in, the record exists and is visible, then an idempotent write */
-function caseWrite<B>(write: (c: CaseRecord, body: B, viewer: Signed) => Response): Handler {
+function caseWrite<B>(
+  write: (c: CaseRecord, body: B, viewer: Signed) => Response,
+  /** Lets a write reach a case the viewer can't otherwise see (a support agent taking an exception) */
+  mayReach: (c: CaseRecord, viewer: Signed) => boolean = () => false,
+): Handler {
   return async ({ request, params }) => {
     const auth = await signedIn()
     if ('failure' in auth) return auth.failure
     const c = casesDb.record(String(params.id))
     if (!c) return notFound()
-    if (!canSee(auth.viewer, c)) return forbidden()
+    if (!canSee(auth.viewer, c) && !mayReach(c, auth.viewer)) return forbidden()
     const body = (await request.json()) as B
     return idempotent(request, c.id, () => withKey(request, () => write(c, body, auth.viewer)))
   }
@@ -395,30 +399,40 @@ function withKey(request: Request, write: () => Response): Response {
 export const writeHandlers: RequestHandler[] = [
   http.post(
     `${API}/cases/:id/assign`,
-    caseWrite<AssignBody>((c, body, viewer) => {
-      if (!hasRole(viewer, 'moderator', 'administrator')) return forbidden()
-      if (body.expectedVersion !== c.version) return conflict(c.version)
-      const assignee = body.assigneeId === null ? null : STAFF.find((s) => s.staffId === body.assigneeId)
-      if (assignee === undefined) return invalid('assigneeId', 'Choose someone on the staff list.')
-      if (isTerminal(c)) return error(422, 'VALIDATION_ERROR', 'This case is already closed')
+    caseWrite<AssignBody>(
+      (c, body, viewer) => {
+        // Support agents may take an exception for themselves (Phase C design §4.4, call 3); nothing else
+        const selfTake =
+          hasRole(viewer, 'support_agent') &&
+          body.assigneeId === viewer.staffId &&
+          isException(c) &&
+          (c.assignee === null || c.assignee.staffId === viewer.staffId)
+        // A stale version first: losing a race reads as "it changed", not as a refusal
+        if (body.expectedVersion !== c.version) return conflict(c.version)
+        if (!hasRole(viewer, 'moderator', 'administrator') && !selfTake) return forbidden()
+        const assignee = body.assigneeId === null ? null : STAFF.find((s) => s.staffId === body.assigneeId)
+        if (assignee === undefined) return invalid('assigneeId', 'Choose someone on the staff list.')
+        if (isTerminal(c)) return error(422, 'VALIDATION_ERROR', 'This case is already closed')
 
-      const before = { assignee: c.assignee?.displayName ?? null }
-      c.assignee = assignee
-      if (assignee && c.status === 'open') setStatus(c, 'assigned')
-      if (!assignee && c.status === 'assigned') setStatus(c, 'open')
-      c.version += 1
-      record(
-        viewer,
-        assignee ? 'assign' : 'unassign',
-        { type: 'case', id: c.id, label: `case ${c.id}` },
-        {
-          caseId: c.id,
-          before,
-          after: { assignee: assignee?.displayName ?? null },
-        },
-      )
-      return HttpResponse.json(casesDb.detail(c.id))
-    }),
+        const before = { assignee: c.assignee?.displayName ?? null }
+        c.assignee = assignee
+        if (assignee && c.status === 'open') setStatus(c, 'assigned')
+        if (!assignee && c.status === 'assigned') setStatus(c, 'open')
+        c.version += 1
+        record(
+          viewer,
+          assignee ? 'assign' : 'unassign',
+          { type: 'case', id: c.id, label: `case ${c.id}` },
+          {
+            caseId: c.id,
+            before,
+            after: { assignee: assignee?.displayName ?? null },
+          },
+        )
+        return HttpResponse.json(casesDb.detail(c.id))
+      },
+      (c, viewer) => hasRole(viewer, 'support_agent') && isException(c),
+    ),
   ),
 
   http.post(

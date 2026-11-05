@@ -27,7 +27,14 @@ export const SCENARIO = {
   resolved: 'NX-000214',
   priceEditedAfterAcceptance: 'NX-000215',
   abusiveComment: 'NX-000216',
+  /** The open "Same listing posted three times" filler: a possible duplicate */
+  duplicate: 'NX-000220',
+  appeal: 'NX-000233',
+  expiringReservation: 'NX-000234',
 } as const
+
+/** The earlier listing the duplicate case's listing repeats (built in records-seed) */
+export const DUPLICATE_LISTING = 'L-5219'
 
 export const TX = {
   paymentDispute: 'T-000301',
@@ -37,6 +44,7 @@ export const TX = {
   bothConfirmed: 'T-000305',
   bothConfirmedBlocked: 'T-000306',
   priceEditedAfterAcceptance: 'T-000307',
+  expiringReservation: 'T-000308',
 } as const
 
 /** The listing's price today, edited by the seller after acceptance (QA-08). Never part of the snapshot. */
@@ -57,6 +65,9 @@ export type AuditRecord = {
 const MINUTE = 60_000
 const HOUR = 60 * MINUTE
 /** Draft due-time targets (design §5.1, pending AD-D-03) */
+/** How long the seeded restriction (Segun's) still runs; the records seed uses the same */
+export const RESTRICTED_FOR_MS = 5 * 24 * 60 * 60_000
+
 export const DUE_HOURS: Record<Severity, number> = { S1: 1, S2: 4, S3: 24, S4: 72 }
 
 export type Member = {
@@ -162,6 +173,9 @@ type CaseSeed = {
   transactionId?: string | null
   notes?: { author: string; body: string; minutesAgo: number }[]
   decision?: { outcome: string; reasonCode: string; byId: string; minutesAgo: number }
+  kind?: CaseRecord['kind']
+  appeal?: CaseRecord['appeal']
+  duplicateOf?: CaseRecord['duplicateOf']
 }
 
 const CASE_SEEDS: CaseSeed[] = [
@@ -208,12 +222,13 @@ const CASE_SEEDS: CaseSeed[] = [
   {
     id: SCENARIO.partialTimeout,
     severity: 'S2',
-    status: 'assigned',
+    status: 'open',
     type: 'transaction',
     summary: 'Only one participant confirmed before the deadline',
     reasonCode: 'PAYMENT_DISPUTE',
     minutesAgo: 150,
-    assigneeId: 's-mod',
+    // Unassigned, so the partial-confirmation queue has work nobody has picked up
+    assigneeId: null,
     description: 'I confirmed the exchange but the other person never did. The trade is stuck.',
     parties: [
       [MEMBERS.halima, 'participant_a'],
@@ -257,12 +272,12 @@ const CASE_SEEDS: CaseSeed[] = [
   {
     id: SCENARIO.bothConfirmed,
     severity: 'S2',
-    status: 'assigned',
+    status: 'open',
     type: 'transaction',
     summary: 'Both confirmed, then one says the item was not as described',
     reasonCode: 'MISREPRESENTED',
     minutesAgo: 240,
-    assigneeId: 's-mod',
+    assigneeId: null,
     description: 'We both confirmed but the laptop battery dies in ten minutes. It said good condition.',
     parties: [
       [MEMBERS.ifeoma, 'participant_a'],
@@ -440,6 +455,44 @@ const CASE_SEEDS: CaseSeed[] = [
       redaction: null,
     },
   },
+  {
+    id: SCENARIO.appeal,
+    severity: 'S3',
+    status: 'open',
+    type: 'account',
+    summary: 'Restricted member appeals the restriction',
+    reasonCode: 'ABUSE',
+    minutesAgo: 1500,
+    assigneeId: null,
+    reportCount: 0,
+    kind: 'appeal',
+    description: 'Segun F. asks for his restriction to be lifted before it ends.',
+    parties: [[MEMBERS.segun, 'appellant']],
+    // The restriction's end is set from `now` when the seed is built
+    appeal: {
+      restrictedUntil: '',
+      reasonCode: 'ABUSE',
+      statement:
+        'I lost my temper after a buyer insulted my price, and I am sorry. I have deleted nothing and will keep it polite. Please let me sell again.',
+    },
+  },
+  {
+    id: SCENARIO.expiringReservation,
+    severity: 'S3',
+    status: 'open',
+    type: 'transaction',
+    summary: 'Reservation expires soon with no confirmations',
+    reasonCode: 'HELP',
+    minutesAgo: 30,
+    assigneeId: null,
+    reportCount: 0,
+    description: 'Opened by the system: the reservation ends within 24 hours and neither member has confirmed.',
+    parties: [
+      [MEMBERS.ifeoma, 'participant_a'],
+      [MEMBERS.tobi, 'participant_b'],
+    ],
+    transactionId: TX.expiringReservation,
+  },
 ]
 
 /** Ordinary work so the queue has a realistic backlog and pages past 25 */
@@ -543,6 +596,10 @@ export function buildSeed(now: number) {
         minutesAgo,
         assigneeId,
         description: summary,
+        ...(id === SCENARIO.duplicate && {
+          kind: 'duplicate' as const,
+          duplicateOf: { kind: 'listings' as const, id: DUPLICATE_LISTING, label: 'Earlier listing of the same item' },
+        }),
         parties: [
           [reporter, 'reporter'],
           [reported, 'reported'],
@@ -621,6 +678,9 @@ export function buildSeed(now: number) {
       dueAt: new Date(now - openedMinutesAgo * MINUTE + DUE_HOURS[s.severity] * HOUR).toISOString(),
       assignee,
       redaction: s.content?.redaction ?? null,
+      kind: s.kind ?? 'report',
+      appeal: s.appeal ? { ...s.appeal, restrictedUntil: new Date(now + RESTRICTED_FOR_MS).toISOString() } : null,
+      duplicateOf: s.duplicateOf ?? null,
       version: 1,
       description: s.description ?? s.summary,
       reports: Array.from({ length: reportCount }, (_, i) => ({
@@ -872,6 +932,32 @@ export function buildSeed(now: number) {
       ],
       caseIds: [SCENARIO.priceEditedAfterAcceptance],
       allowedOutcomes: [],
+    },
+    {
+      id: TX.expiringReservation,
+      status: 'AWAITING_HANDOVER',
+      flags: [],
+      confirmations: 0,
+      terms: terms(
+        [MEMBERS.ifeoma, 'Office desk', 'Used, good', 'Scuffed top'],
+        [MEMBERS.tobi, 'Bookshelf', 'Used, good', null],
+        1_500_000,
+        'OffererPays',
+        ['I-1801', 'I-1802'],
+      ),
+      // Reserved 6 days 18 hours ago for 7 days: about 6 hours left
+      acceptedMinutesAgo: 9720,
+      versions: [],
+      confirmationEvents: [
+        confirmation('A', MEMBERS.ifeoma, null, null, null),
+        confirmation('B', MEMBERS.tobi, null, null, null),
+      ],
+      reservations: [
+        reservation('I-1801', 'Office desk', 9720, 168, false),
+        reservation('I-1802', 'Bookshelf', 9720, 168, false),
+      ],
+      caseIds: [SCENARIO.expiringReservation],
+      allowedOutcomes: ['cancelled', 'administratively_resolved'],
     },
   ]
 

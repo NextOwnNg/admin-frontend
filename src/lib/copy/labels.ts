@@ -28,4 +28,5 @@ export const TARGET_TYPE_LABELS = {
   message: 'Message',
   transaction: 'Transaction',
   case: 'Case',
+  settings: 'Settings',
 } as const

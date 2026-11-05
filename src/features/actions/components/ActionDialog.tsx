@@ -13,7 +13,7 @@ import { useTransactionAction } from '@/features/actions/api/useTransactionActio
 import { ReasonCodeField } from '@/features/actions/components/ReasonCodeField'
 import { TargetPicker } from '@/features/actions/components/TargetPicker'
 import {
-  CLOSE_OUTCOMES,
+  closeOutcomesFor,
   reasonKindFor,
   targetsFor,
   type ActionContext,
@@ -263,7 +263,7 @@ function ActionForm({
   const outcomeOptions =
     context.kind === 'transaction'
       ? context.tx.allowedOutcomes.map((o) => ({ value: o, label: TRANSACTION_OUTCOME[o] }))
-      : Object.entries(CLOSE_OUTCOMES).map(([value, label]) => ({ value, label }))
+      : closeOutcomesFor(context.caseDetail.kind).map(([value, label]) => ({ value, label }))
   const completionWithheld = context.kind === 'transaction' && !context.tx.allowedOutcomes.includes('completed')
   const itemOptions =
     context.kind === 'transaction'

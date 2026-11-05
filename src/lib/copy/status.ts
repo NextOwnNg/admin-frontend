@@ -110,5 +110,6 @@ export const DECISION_OUTCOME: Record<string, string> = {
   no_violation: 'No violation',
   action_taken: 'Action taken',
   duplicate: 'Duplicate report',
+  upheld: 'Restriction upheld',
   ...TRANSACTION_OUTCOME,
 }

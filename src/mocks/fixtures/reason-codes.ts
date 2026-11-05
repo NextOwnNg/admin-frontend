@@ -68,6 +68,14 @@ export const REASON_CODES: ReasonCode[] = [
   },
   { code: 'HELP', label: 'General help', severity: 'S4', kind: 'violation', appliesTo: ANY },
   {
+    code: 'RESTRICTION_UPHELD',
+    label: 'Restriction stays in place',
+    severity: null,
+    kind: 'decision',
+    appliesTo: ['case'],
+  },
+  { code: 'NOT_A_DUPLICATE', label: 'Not a duplicate', severity: null, kind: 'decision', appliesTo: ['case'] },
+  {
     code: 'BOTH_CONFIRMED',
     label: 'Both participants confirmed',
     severity: null,

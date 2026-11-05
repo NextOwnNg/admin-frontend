@@ -104,7 +104,3 @@ export function recordHref(ref: Pick<RecordRef, 'kind' | 'id'>): string {
   if (ref.kind === 'transactions') return `/transactions/${ref.id}`
   return `/records/${ref.kind}/${ref.id}`
 }
-
-/** Pilot areas and categories until the settings API serves them (Phase C2). DRAFT. */
-export const PILOT_AREAS = ['Ajah', 'Ikeja', 'Lekki', 'Surulere', 'Yaba'] as const
-export const PILOT_CATEGORIES = ['Bikes', 'Electronics', 'Fashion', 'Gaming', 'Home', 'Laptops', 'Phones'] as const

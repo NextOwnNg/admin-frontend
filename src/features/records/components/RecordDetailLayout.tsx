@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { BackButton } from '@/components/layout/BackButton'
 import { LinkedRecordsPanel } from '@/features/records/components/LinkedRecordsPanel'
 import { RecordCasesList } from '@/features/records/components/RecordCasesList'
 import type { DetailBase, RecordKind } from '@/lib/api/types/records'
@@ -26,6 +27,7 @@ export function RecordDetailLayout({
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
+        <BackButton fallback={`/records/${kind}`} />
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-h1 text-ink">{title}</h1>
           {badge}

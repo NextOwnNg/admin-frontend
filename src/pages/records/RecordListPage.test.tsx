@@ -3,7 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { routes } from '@/app/router'
+import { apiClient } from '@/lib/api/client'
+import { idempotencyHeaders, newIdempotencyKey } from '@/lib/api/idempotency'
 import type { RecordKind } from '@/lib/api/types/records'
+import type { PilotSettings } from '@/lib/api/types/settings'
 import { apiBaseUrl } from '@/lib/env'
 import { REC } from '@/mocks/records-seed'
 import { TX } from '@/mocks/seed'
@@ -147,5 +150,36 @@ describe('record browsers (ADM-FE-07, Phase C design §4.1)', () => {
       'href',
       `/transactions/${TX.paymentDispute}`,
     )
+  })
+})
+
+describe('record filters follow the pilot settings (Phase C design §4.5)', () => {
+  it('keeps an area whose name has punctuation in the address (final review)', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/records/listings?area=Victoria%20Island%20(VI)' })
+    await screen.findByRole('heading', { level: 1, name: 'Listings' })
+    const chips = await screen.findByRole('list', { name: 'Active filters' })
+    expect(chips).toHaveTextContent('Area: Victoria Island (VI)')
+  })
+
+  it('offers a newly added area, and never an inactive one', async () => {
+    await signInAs('administrator')
+    const { data } = await apiClient.get<PilotSettings>('/admin/settings')
+    const lagos = data.locations[0]!
+    await apiClient.put(
+      '/admin/settings/locations',
+      {
+        value: [{ ...lagos, areas: [...lagos.areas, { id: 'a-ojodu', name: 'Ojodu', active: true }] }],
+        reason: 'Pilot grows to Ojodu',
+        expectedVersion: data.version,
+      },
+      { headers: idempotencyHeaders(newIdempotencyKey()) },
+    )
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/records/listings' })
+    await grid('Listings')
+    const area = screen.getByRole('combobox', { name: 'Area' })
+    await waitFor(() => expect(within(area).getByRole('option', { name: 'Ojodu' })).toBeInTheDocument())
+    expect(within(area).queryByRole('option', { name: 'Ojota' })).not.toBeInTheDocument()
   })
 })

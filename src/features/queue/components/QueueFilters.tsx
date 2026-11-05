@@ -11,7 +11,7 @@ type SetFilter = <K extends keyof Filters>(key: K, value: Filters[K] | undefined
 const STATUS_OPTIONS = Object.entries(CASE_STATUS).map(([value, { label }]) => ({ value, label }))
 const SEVERITY_OPTIONS = Object.entries(SEVERITY).map(([value, { label }]) => ({ value, label }))
 const TYPE_OPTIONS = Object.entries(TARGET_TYPE_LABELS)
-  .filter(([value]) => value !== 'case')
+  .filter(([value]) => value !== 'case' && value !== 'settings')
   .map(([value, label]) => ({ value, label }))
 const AGE_OPTIONS = [
   { value: '1h', label: 'Under 1 hour' },

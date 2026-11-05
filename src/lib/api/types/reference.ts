@@ -4,7 +4,8 @@ import type { Severity } from '@/lib/copy/status'
 
 /** Reference data and the overview (design §5.3, §9a.5, §4.1). Hand-written until the OpenAPI spec lands. */
 
-export type TargetType = 'account' | 'listing' | 'comment' | 'feed_post' | 'message' | 'transaction' | 'case'
+export type TargetType =
+  'account' | 'listing' | 'comment' | 'feed_post' | 'message' | 'transaction' | 'case' | 'settings'
 
 /** `GET /admin/reason-codes`. Draft codes (design §5.3) until the API serves the real list. */
 export type ReasonCode = {

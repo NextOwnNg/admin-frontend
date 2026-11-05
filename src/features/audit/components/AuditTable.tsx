@@ -34,7 +34,15 @@ function Target({ entry }: { entry: AuditEntry }) {
       </Link>,
     )
   }
-  const own = (target.type === 'case' && caseId) || (target.type === 'transaction' && transactionId)
+  if (target.type === 'settings') {
+    links.push(
+      <Link key="settings" to="/settings" className="text-action underline underline-offset-2">
+        {target.label}
+      </Link>,
+    )
+  }
+  const own =
+    (target.type === 'case' && caseId) || (target.type === 'transaction' && transactionId) || target.type === 'settings'
   return (
     <span className="flex flex-col">
       {!own && <span className="text-ink">{target.label}</span>}

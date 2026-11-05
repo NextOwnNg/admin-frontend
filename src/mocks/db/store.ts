@@ -1,9 +1,16 @@
+import type { SettingsVersion } from '@/lib/api/types/settings'
+import { initialSettings } from '@/mocks/fixtures/settings'
 import { buildRecords } from '@/mocks/records-seed'
 import { buildSeed } from '@/mocks/seed'
 
 function build(now: number) {
   const base = buildSeed(now)
-  return { ...base, records: buildRecords(now, base) }
+  return {
+    ...base,
+    records: buildRecords(now, base),
+    settings: initialSettings(now),
+    settingsHistory: [] as SettingsVersion[],
+  }
 }
 
 /** The mock API's moderation data, seeded relative to now. Reloading the page reseeds it. */

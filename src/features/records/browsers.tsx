@@ -6,6 +6,7 @@ import { TransactionStatusBadge } from '@/components/domain/TransactionStatusBad
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { RecordLink } from '@/features/records/components/RecordLink'
 import { commaList, CURSOR } from '@/hooks/useUrlFilters'
+import { useSettings } from '@/features/settings/api/useSettings'
 import { useReasonCodes } from '@/lib/api/reference'
 import { ReasonText } from '@/features/records/components/ReasonText'
 import type { RecordKind, RecordRowFor } from '@/lib/api/types/records'
@@ -17,8 +18,6 @@ import {
   LISTING_STATUS,
   memberStatusText,
   OFFER_STATUS,
-  PILOT_AREAS,
-  PILOT_CATEGORIES,
 } from '@/lib/copy/records'
 import { REDACTION, TRANSACTION_FLAG, TRANSACTION_STATUS } from '@/lib/copy/status'
 import { cashDirection } from '@/lib/money/money'
@@ -53,16 +52,38 @@ const options = <T extends string>(labels: Record<T, string | { label: string }>
     value,
     label: typeof label === 'string' ? label : label.label,
   }))
-const plain = (values: readonly string[]): FilterOption[] => values.map((v) => ({ value: v, label: v }))
 const id = (value: string) => <span className="whitespace-nowrap tabular-nums">{value}</span>
 const when = (iso: string) => <span className="tabular-nums">{formatWATDate(iso)}</span>
+
+/** Active areas of active cities, from the pilot settings */
+function useAreaOptions(): FilterOption[] {
+  const settings = useSettings()
+  return (settings.data?.locations ?? [])
+    .filter((c) => c.active)
+    .flatMap((c) => c.areas.filter((a) => a.active).map((a) => a.name))
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ value: name, label: name }))
+}
+
+/** Active categories, from the pilot settings */
+function useCategoryOptions(): FilterOption[] {
+  const settings = useSettings()
+  return (settings.data?.categories ?? [])
+    .filter((c) => c.active)
+    .map((c) => c.name)
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({ value: name, label: name }))
+}
+
+/** Any name the settings accept (2 to 60 characters); control characters never are */
+const PLACE_NAME = /^[^\p{Cc}]{2,60}$/u
 
 function useReasonOptions(): FilterOption[] {
   const reasons = useReasonCodes()
   return (reasons.data ?? []).map((r) => ({ value: r.code, label: r.label }))
 }
 
-const TYPE_OPTIONS = options(TARGET_TYPE_LABELS).filter((o) => o.value !== 'case')
+const TYPE_OPTIONS = options(TARGET_TYPE_LABELS).filter((o) => o.value !== 'case' && o.value !== 'settings')
 
 export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
   users: {
@@ -88,7 +109,7 @@ export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
         multiple: true,
         options: options({ active: 'Active', restricted: 'Restricted' }),
       },
-      { key: 'area', label: 'Area', multiple: false, options: plain(PILOT_AREAS) },
+      { key: 'area', label: 'Area', multiple: false, options: useAreaOptions, pattern: PLACE_NAME },
     ],
   },
   items: {
@@ -107,7 +128,7 @@ export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
       { id: 'availability', header: 'Availability', cell: (i) => AVAILABILITY[i.availability] },
     ],
     filters: [
-      { key: 'category', label: 'Category', multiple: false, options: plain(PILOT_CATEGORIES) },
+      { key: 'category', label: 'Category', multiple: false, options: useCategoryOptions, pattern: PLACE_NAME },
       { key: 'availability', label: 'Availability', multiple: true, options: options(AVAILABILITY) },
     ],
   },
@@ -152,8 +173,8 @@ export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
     ],
     filters: [
       { key: 'status', label: 'Status', multiple: true, options: options(LISTING_STATUS) },
-      { key: 'category', label: 'Category', multiple: false, options: plain(PILOT_CATEGORIES) },
-      { key: 'area', label: 'Area', multiple: false, options: plain(PILOT_AREAS) },
+      { key: 'category', label: 'Category', multiple: false, options: useCategoryOptions, pattern: PLACE_NAME },
+      { key: 'area', label: 'Area', multiple: false, options: useAreaOptions, pattern: PLACE_NAME },
       { key: 'mode', label: 'Mode', multiple: true, options: options(LISTING_MODE) },
       { key: 'urgent', label: 'Quick Sell', multiple: false, options: [{ value: '1', label: 'Quick Sell only' }] },
     ],

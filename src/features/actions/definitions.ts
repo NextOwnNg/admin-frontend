@@ -53,6 +53,13 @@ export const CLOSE_OUTCOMES: Record<CloseOutcome, string> = {
   no_violation: 'No violation',
   action_taken: 'Action taken',
   duplicate: 'Duplicate report',
+  upheld: 'Restriction upheld',
+}
+
+/** An appeal closes only as upheld (lifting is its own action); "upheld" means nothing on a report */
+export function closeOutcomesFor(kind: CaseDetail['kind']): [CloseOutcome, string][] {
+  const all = Object.entries(CLOSE_OUTCOMES) as [CloseOutcome, string][]
+  return kind === 'appeal' ? all.filter(([o]) => o === 'upheld') : all.filter(([o]) => o !== 'upheld')
 }
 
 const days = (values: ActionValues) => (values.durationDays === '1' ? '1 day' : `${values.durationDays ?? ''} days`)

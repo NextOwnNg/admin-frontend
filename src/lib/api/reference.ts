@@ -58,6 +58,7 @@ export function useAssignCase() {
         queryClient.invalidateQueries({ queryKey: casesQueryKey }),
         queryClient.invalidateQueries({ queryKey: caseQueryKey(caseId) }),
         queryClient.invalidateQueries({ queryKey: ['admin', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['admin', 'exceptions'] }),
       ]),
   })
 }

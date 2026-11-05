@@ -12,6 +12,7 @@ const PARTY_ROLE: Record<PartyRef['role'], string> = {
   reported: 'Reported member',
   participant_a: 'Participant A',
   participant_b: 'Participant B',
+  appellant: 'Appellant',
 }
 
 /** "3 previous moderation actions in 90 days": a fact, never a score (design §4.3) */

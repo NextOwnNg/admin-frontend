@@ -9,7 +9,9 @@ const actions = Object.keys(AUDIT_ACTIONS) as [string, ...string[]]
 export const auditFilterSchema = z.object({
   actor: z.string().min(1).max(64).optional(),
   action: z.enum(actions).optional(),
-  targetType: z.enum(['account', 'listing', 'comment', 'feed_post', 'message', 'transaction', 'case']).optional(),
+  targetType: z
+    .enum(['account', 'listing', 'comment', 'feed_post', 'message', 'transaction', 'case', 'settings'])
+    .optional(),
   from: date.optional(),
   to: date.optional(),
   cursor: CURSOR.optional(),

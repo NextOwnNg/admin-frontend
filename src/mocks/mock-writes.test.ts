@@ -163,8 +163,12 @@ describe('mock admin API writes (design §4.5, §5.5, §9a)', () => {
     expect(unassigned).toMatchObject({ status: 'open', assignee: null })
 
     await signInAs('support_agent')
+    // An ordinary report: agents only take exceptions, for themselves (Phase C design §9 call 3)
     const error = await failure(
-      post(`/admin/cases/${SCENARIO.paymentDispute}/assign`, { assigneeId: 's-agent', expectedVersion: 1 }),
+      post(`/admin/cases/${SCENARIO.s1Unassigned}/assign`, {
+        assigneeId: 's-agent',
+        expectedVersion: unassigned.version,
+      }),
     )
     expect(error.status).toBe(403)
   })

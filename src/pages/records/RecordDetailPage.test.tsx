@@ -175,7 +175,9 @@ describe('listing, offer, feed and report records (Phase C design §4.2)', () =>
     const versions = screen.getByRole('region', { name: 'Versions' })
     expect(within(versions).getAllByRole('listitem', { name: /^Version \d$/ })).toHaveLength(3)
     expect(within(versions).getByText('Awaiting reply')).toBeInTheDocument()
-    expect(within(screen.getByRole('main')).queryAllByRole('button')).toEqual([])
+    // Back is navigation; nothing on the page acts on the offer
+    const buttons = within(screen.getByRole('main')).queryAllByRole('button')
+    expect(buttons.map((b) => b.textContent)).toEqual(['Back'])
     await expectNoA11yViolations(container)
   })
 

@@ -37,6 +37,7 @@ function toSummary(c: CaseRecord, now: number): CaseSummary {
     dueAt,
     assignee,
     redaction,
+    kind,
     version,
   } = c
   return structuredClone({
@@ -52,6 +53,7 @@ function toSummary(c: CaseRecord, now: number): CaseSummary {
     overdue: isOverdue(c, now),
     assignee,
     redaction,
+    kind,
     version,
   })
 }
