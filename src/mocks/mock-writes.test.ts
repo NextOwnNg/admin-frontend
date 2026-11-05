@@ -29,6 +29,16 @@ const hideComment = (version: number): CaseActionBody => ({
 })
 
 describe('mock admin API writes (design §4.5, §5.5, §9a)', () => {
+  it('records a removal as removed by moderation, not hidden (Phase C1 review)', async () => {
+    await signInAs('moderator')
+    const before = await getCase(SCENARIO.abusiveComment)
+    const { data } = await post<CaseActionResult>(`/admin/cases/${SCENARIO.abusiveComment}/actions`, {
+      ...hideComment(before.version),
+      action: 'remove',
+    })
+    expect(data.case.content).toMatchObject({ redaction: 'removed_by_moderation', text: null })
+  })
+
   it('hides reported content with a reason and returns the audit entry (QA-19)', async () => {
     await signInAs('moderator')
     const before = await getCase(SCENARIO.abusiveComment)
@@ -153,8 +163,12 @@ describe('mock admin API writes (design §4.5, §5.5, §9a)', () => {
     expect(unassigned).toMatchObject({ status: 'open', assignee: null })
 
     await signInAs('support_agent')
+    // An ordinary report: agents only take exceptions, for themselves (Phase C design §9 call 3)
     const error = await failure(
-      post(`/admin/cases/${SCENARIO.paymentDispute}/assign`, { assigneeId: 's-agent', expectedVersion: 1 }),
+      post(`/admin/cases/${SCENARIO.s1Unassigned}/assign`, {
+        assigneeId: 's-agent',
+        expectedVersion: unassigned.version,
+      }),
     )
     expect(error.status).toBe(403)
   })

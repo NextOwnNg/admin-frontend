@@ -1,5 +1,5 @@
 import { Inbox, SearchX } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Pagination } from '@/components/data/Pagination'
 import type { RowAction } from '@/components/data/DataTable'
@@ -15,7 +15,7 @@ import { queueFilterSchema } from '@/features/queue/schemas'
 import { useCursorStack } from '@/hooks/useCursorStack'
 import { useUrlFilters } from '@/hooks/useUrlFilters'
 import { errorMessage, isConflict, isForbidden } from '@/lib/api/error-message'
-import { useAssignCase, type AssignVariables } from '@/lib/api/reference'
+import { useAssignCase, useStaff, type AssignVariables } from '@/lib/api/reference'
 import type { CaseSummary } from '@/lib/api/types/cases'
 import { useSessionStore } from '@/stores/session'
 
@@ -29,6 +29,14 @@ export function ReportsQueuePage() {
   const cases = useCases(filters)
   const assign = useAssignCase()
   const [assigning, setAssigning] = useState<CaseSummary | null>(null)
+  const staff = useStaff()
+
+  // An assignee who isn't on the staff list is ignored like any other unknown value
+  const assignee = present.assignee
+  useEffect(() => {
+    if (!assignee || assignee === 'me' || assignee === 'unassigned' || !staff.data) return
+    if (!staff.data.some((s) => s.staffId === assignee)) setFilter('assignee', undefined)
+  }, [assignee, staff.data, setFilter])
 
   const assignTo = (row: CaseSummary, assigneeId: string | null) => {
     const variables: AssignVariables = { caseId: row.id, assigneeId, expectedVersion: row.version }

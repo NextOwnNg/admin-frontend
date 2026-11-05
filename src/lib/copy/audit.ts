@@ -22,6 +22,7 @@ export const AUDIT_ACTIONS: Record<string, { label: string; verb: string }> = {
   view_messages: { label: 'Messages viewed', verb: 'viewed private messages in' },
   view_evidence: { label: 'Evidence viewed', verb: 'viewed evidence in' },
   view_venue: { label: 'Handover venue viewed', verb: 'viewed the handover venue in' },
+  update_settings: { label: 'Settings changed', verb: 'changed' },
 }
 
 /** `"Tunde Bakare hid comment C-5501"` */

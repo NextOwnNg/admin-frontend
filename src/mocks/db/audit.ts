@@ -27,6 +27,13 @@ export const auditDb = {
       .sort(newestFirst)
       .map((r) => r.entry),
 
+  /** Entries about one record, such as a member's account */
+  forTarget: (targetId: string) =>
+    store()
+      .audit.filter((r) => r.entry.target.id === targetId)
+      .sort(newestFirst)
+      .map((r) => r.entry),
+
   forTransaction: (transactionId: string) =>
     store()
       .audit.filter((r) => r.transactionId === transactionId)

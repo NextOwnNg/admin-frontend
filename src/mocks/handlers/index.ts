@@ -2,7 +2,11 @@ import type { RequestHandler } from 'msw'
 import { auditHandlers } from '@/mocks/handlers/audit'
 import { authHandlers } from '@/mocks/handlers/auth'
 import { caseReadHandlers } from '@/mocks/handlers/cases'
+import { exceptionHandlers } from '@/mocks/handlers/exceptions'
+import { recordHandlers } from '@/mocks/handlers/records'
 import { referenceHandlers } from '@/mocks/handlers/reference'
+import { searchHandlers } from '@/mocks/handlers/search'
+import { settingsHandlers } from '@/mocks/handlers/settings'
 import { transactionReadHandlers } from '@/mocks/handlers/transactions'
 import { writeHandlers } from '@/mocks/handlers/writes'
 
@@ -13,5 +17,9 @@ export const handlers: RequestHandler[] = [
   ...transactionReadHandlers,
   ...auditHandlers,
   ...referenceHandlers,
+  ...recordHandlers,
+  ...exceptionHandlers,
+  ...searchHandlers,
+  ...settingsHandlers,
   ...writeHandlers,
 ]

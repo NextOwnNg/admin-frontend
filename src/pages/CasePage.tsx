@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import { AssignControl } from '@/components/domain/AssignControl'
 import { AuditEntry } from '@/components/domain/AuditEntry'
+import { BackButton } from '@/components/layout/BackButton'
 import { CasePanel } from '@/components/domain/CasePanel'
 import { PageHead } from '@/components/seo/PageHead'
 import { Banner } from '@/components/ui/Banner'
@@ -55,7 +56,10 @@ export function CasePage() {
         <TableSkeleton rows={6} columns={2} />
       ) : (
         <div className="flex flex-col gap-6">
-          <CaseHeader caseDetail={caseDetail} />
+          <div className="flex flex-col gap-2">
+            <BackButton fallback="/reports" />
+            <CaseHeader caseDetail={caseDetail} />
+          </div>
           {recorded && (
             <Banner tone="success" title="Recorded">
               <AuditEntry entry={recorded} />

@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { invalidateAfterAction } from '@/features/actions/api/useCaseAction'
-import { transactionQueryKey } from '@/features/transactions/api/transaction-api'
+import { transactionQueryPrefix } from '@/features/transactions/api/transaction-api'
 import { apiClient } from '@/lib/api/client'
 import { idempotencyHeaders } from '@/lib/api/idempotency'
 import { caseQueryKey } from '@/lib/api/reference'
@@ -24,7 +24,7 @@ export function useTransactionAction(transactionId: string, caseId?: string) {
       ).data,
     onSettled: (result) =>
       invalidateAfterAction(queryClient, [
-        transactionQueryKey(transactionId),
+        transactionQueryPrefix(transactionId),
         ...(result?.transaction.caseIds ?? []).map(caseQueryKey),
       ]),
   })

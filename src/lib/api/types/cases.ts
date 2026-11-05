@@ -1,16 +1,17 @@
 import type { AuditEntry } from '@/lib/api/types/audit'
+import type { RecordRef } from '@/lib/api/types/records'
 import type { StaffMember, TargetType } from '@/lib/api/types/reference'
 import type { TransactionOutcome, TransactionSummary } from '@/lib/api/types/transactions'
 import type { CaseStatus, Severity } from '@/lib/copy/status'
 
 /** Moderation cases (design §4.2, §4.3, §6). */
 
-export type Redaction = null | 'removed_by_author' | 'hidden_by_moderation'
+export type Redaction = null | 'removed_by_author' | 'hidden_by_moderation' | 'removed_by_moderation'
 
 export type PartyRef = {
   userId: string
   displayName: string
-  role: 'reporter' | 'reported' | 'participant_a' | 'participant_b'
+  role: 'reporter' | 'reported' | 'participant_a' | 'participant_b' | 'appellant'
   memberSince: string
   /** Moderation actions against this member in the last 90 days: a fact, never a score */
   priorActions90d: number
@@ -34,8 +35,15 @@ export type CaseSummary = {
   assignee: StaffMember | null
   /** The reported content's redaction, so lists say so instead of describing it */
   redaction: Redaction
+  /** A member's report, a restricted member's appeal, or a possible duplicate listing (Phase C §4.4) */
+  kind: CaseKind
   version: number
 }
+
+export type CaseKind = 'report' | 'appeal' | 'duplicate'
+
+/** The restriction a member is appealing, and what they said */
+export type AppealInfo = { restrictedUntil: string; reasonCode: string; statement: string }
 
 export type CaseDecision = { outcome: string; reasonCode: string; by: string; at: string }
 
@@ -51,6 +59,9 @@ export type CaseDetail = CaseSummary & {
   notes: { id: string; author: string; body: string; at: string }[]
   nextAction: string | null
   decision: CaseDecision | null
+  appeal: AppealInfo | null
+  /** For a duplicate: the earlier listing this one may repeat */
+  duplicateOf: RecordRef | null
   history: AuditEntry[]
 }
 
@@ -79,7 +90,8 @@ export type RevealResult = { value?: string; url?: string; expiresAt?: string }
 export type CaseActionId =
   'hide' | 'remove' | 'warn' | 'restrict' | 'lift_restriction' | 'close' | 'request_info' | 'escalate' | 'propose'
 
-export type CloseOutcome = 'no_violation' | 'action_taken' | 'duplicate'
+/** `upheld` closes an appeal with the restriction left in place */
+export type CloseOutcome = 'no_violation' | 'action_taken' | 'duplicate' | 'upheld'
 
 /** `POST /admin/cases/:id/actions` (design §9a.3) */
 export type CaseActionBody = {

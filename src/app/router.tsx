@@ -4,6 +4,7 @@ import { RequireRole } from '@/app/guards/RequireRole'
 import { RequireStaff } from '@/app/guards/RequireStaff'
 import { AdminLayout } from '@/app/layouts/AdminLayout'
 import { AuthLayout } from '@/app/layouts/AuthLayout'
+import { KeyedById } from '@/app/KeyedById'
 import { RootLayout } from '@/app/layouts/RootLayout'
 import type { RouteHandle } from '@/components/layout/Breadcrumbs'
 import { recordKindLabel, type RouteId } from '@/lib/permissions/permissions'
@@ -52,12 +53,26 @@ export const routes: RouteObject[] = [
               guarded('case', {
                 path: 'cases/:id',
                 handle: crumb((p) => `Case ${p.id ?? ''}`),
-                lazy: () => import('@/pages/CasePage').then((m) => ({ Component: m.CasePage })),
+                lazy: () =>
+                  import('@/pages/CasePage').then((m) => ({
+                    Component: () => (
+                      <KeyedById>
+                        <m.CasePage />
+                      </KeyedById>
+                    ),
+                  })),
               }),
               guarded('transaction', {
                 path: 'transactions/:id',
                 handle: crumb((p) => `Transaction ${p.id ?? ''}`),
-                lazy: () => import('@/pages/TransactionPage').then((m) => ({ Component: m.TransactionPage })),
+                lazy: () =>
+                  import('@/pages/TransactionPage').then((m) => ({
+                    Component: () => (
+                      <KeyedById>
+                        <m.TransactionPage />
+                      </KeyedById>
+                    ),
+                  })),
               }),
               guarded('records', {
                 path: 'records',
@@ -80,7 +95,11 @@ export const routes: RouteObject[] = [
                         handle: crumb((p) => p.id ?? ''),
                         lazy: () =>
                           import('@/pages/records/RecordDetailPage').then((m) => ({
-                            Component: m.RecordDetailPage,
+                            Component: () => (
+                              <KeyedById>
+                                <m.RecordDetailPage />
+                              </KeyedById>
+                            ),
                           })),
                       },
                     ],

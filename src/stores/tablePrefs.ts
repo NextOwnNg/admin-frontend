@@ -5,6 +5,9 @@ import { safeJsonStorage } from '@/lib/storage/safe-storage'
 /** Column visibility and density per table (PRD §3.4). Never case data, notes or evidence. */
 export type TablePrefs = { hiddenColumns: string[]; density: 'compact' | 'comfortable' }
 
+/** A table nobody has adjusted yet */
+export const DEFAULT_TABLE_PREFS: TablePrefs = { hiddenColumns: [], density: 'comfortable' }
+
 type TablePrefsState = {
   prefs: Record<string, TablePrefs>
   setPrefs: (tableId: string, prefs: TablePrefs) => void

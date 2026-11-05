@@ -57,3 +57,15 @@ export function dueText(iso: string, now: number): string {
   if (left < 48 * HOUR) return `Due in ${Math.floor(left / HOUR)} h`
   return `Due in ${Math.floor(left / (24 * HOUR))} days`
 }
+
+const WAT_OFFSET_MS = HOUR
+
+/** The first instant of a WAT calendar day (`"2026-11-05"`), as UTC ISO: filters by the day operators see. */
+export function watDayStart(date: string): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) - WAT_OFFSET_MS).toISOString()
+}
+
+/** The last millisecond of a WAT calendar day, as UTC ISO */
+export function watDayEnd(date: string): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + 24 * HOUR - WAT_OFFSET_MS - 1).toISOString()
+}

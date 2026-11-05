@@ -50,6 +50,7 @@ export function MyCasesTable({
   return (
     <DataTable
       label="My cases"
+      tableId="overview-my-cases"
       columns={columns}
       rows={rows}
       rowKey={(c) => c.id}

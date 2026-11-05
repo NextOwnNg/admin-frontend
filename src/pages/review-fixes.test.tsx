@@ -7,7 +7,7 @@ import { apiClient } from '@/lib/api/client'
 import { idempotencyHeaders, newIdempotencyKey } from '@/lib/api/idempotency'
 import type { CaseActionBody, CaseDetail } from '@/lib/api/types/cases'
 import { apiBaseUrl } from '@/lib/env'
-import { SCENARIO } from '@/mocks/seed'
+import { SCENARIO, TX } from '@/mocks/seed'
 import { signInAs } from '@/test/auth'
 import { server } from '@/test/msw/server'
 import { renderWithProviders } from '@/test/utils'
@@ -134,5 +134,105 @@ describe('final review fixes', () => {
       .getAllByRole('row')
       .find((r) => r.textContent?.includes(SCENARIO.overdue))!
     expect(row).toHaveTextContent('Content hidden by moderation')
+  })
+})
+
+/** Every request the console sends to the mock API during a test */
+function recordRequests() {
+  const requests: Request[] = []
+  const listener = ({ request }: { request: Request }) => void requests.push(request.clone())
+  server.events.on('request:start', listener)
+  return requests
+}
+
+describe('Phase B carry-overs (Phase C design §8)', () => {
+  it('resets the case page when only the id changes', async () => {
+    await signInAs('moderator')
+    // The second case is already cached, so nothing unmounts while it loads
+    const { router } = renderWithProviders(routes, { initialPath: `/cases/${SCENARIO.partialTimeout}` })
+    await screen.findByRole('heading', { level: 1, name: new RegExp(SCENARIO.partialTimeout) })
+    await router.navigate(`/cases/${SCENARIO.paymentDispute}`)
+    await screen.findByRole('heading', { level: 1, name: new RegExp(SCENARIO.paymentDispute) })
+    await userEvent.type(screen.getByRole('textbox', { name: /Add a note/ }), 'Half-written thought')
+
+    await router.navigate(`/cases/${SCENARIO.partialTimeout}`)
+
+    await screen.findByRole('heading', { level: 1, name: new RegExp(SCENARIO.partialTimeout) })
+    expect(screen.getByRole('textbox', { name: /Add a note/ })).toHaveValue('')
+  })
+
+  it('keys the transaction cache by the case it was opened through', async () => {
+    await signInAs('support_agent')
+    const { router } = renderWithProviders(routes, {
+      initialPath: `/transactions/${TX.paymentDispute}?case=${SCENARIO.paymentDispute}`,
+    })
+    await screen.findByRole('heading', { level: 1, name: new RegExp(TX.paymentDispute) })
+
+    await router.navigate(`/transactions/${TX.paymentDispute}`)
+
+    expect(await screen.findByText("You don't have permission to view this page")).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 1, name: new RegExp(TX.paymentDispute) })).not.toBeInTheDocument()
+  })
+
+  it('drops an unknown assignee and a malformed cursor from the queue address', async () => {
+    await signInAs('moderator')
+    const requests = recordRequests()
+    renderWithProviders(routes, { initialPath: '/reports?assignee=s-ghost&cursor=%3Cx%3E' })
+
+    await waitFor(() => {
+      const last = new URL(
+        requests.filter((r) => r.url.includes('/admin/cases?') || r.url.endsWith('/admin/cases')).at(-1)!.url,
+      )
+      expect(last.searchParams.has('assignee')).toBe(false)
+      expect(last.searchParams.has('cursor')).toBe(false)
+    })
+    expect(screen.queryByRole('list', { name: 'Active filters' })).not.toBeInTheDocument()
+  })
+
+  it('filters the log by WAT calendar days', async () => {
+    await signInAs('administrator')
+    const requests = recordRequests()
+    renderWithProviders(routes, { initialPath: '/audit?from=2026-11-05&to=2026-11-05' })
+    await waitFor(() => {
+      const audit = requests.find((r) => r.url.includes('/admin/audit'))
+      expect(audit).toBeDefined()
+      const params = new URL(audit!.url).searchParams
+      expect(params.get('from')).toBe('2026-11-04T23:00:00.000Z')
+      expect(params.get('to')).toBe('2026-11-05T22:59:59.999Z')
+    })
+  })
+
+  it('retries an unchanged note with the same key and an edited one with a new key', async () => {
+    await signInAs('moderator')
+    const keys: string[] = []
+    let failed = false
+    server.use(
+      http.post(`${apiBaseUrl}/admin/cases/:id/notes`, ({ request }) => {
+        keys.push(request.headers.get('Idempotency-Key') ?? '')
+        if (!failed) {
+          failed = true
+          return HttpResponse.json({ code: 'INTERNAL', message: 'Something went wrong' }, { status: 500 })
+        }
+        return undefined
+      }),
+    )
+    renderWithProviders(routes, { initialPath: `/cases/${SCENARIO.paymentDispute}` })
+    const note = await screen.findByRole('textbox', { name: /Add a note/ })
+    await userEvent.type(note, 'Called both members')
+    await userEvent.click(screen.getByRole('button', { name: 'Save note' }))
+    await waitFor(() => expect(keys).toHaveLength(1))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save note' })).toBeEnabled())
+
+    // A second failure keeps the same intent and key
+    failed = false
+    await userEvent.click(screen.getByRole('button', { name: 'Save note' }))
+    await waitFor(() => expect(keys).toHaveLength(2))
+    expect(keys[1]).toBe(keys[0])
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Save note' })).toBeEnabled())
+    await userEvent.type(note, ' twice')
+    await userEvent.click(screen.getByRole('button', { name: 'Save note' }))
+    await waitFor(() => expect(keys).toHaveLength(3))
+    expect(keys[2]).not.toBe(keys[0])
   })
 })

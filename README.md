@@ -44,6 +44,33 @@ With `VITE_USE_MOCK_API=true`, these fictional staff accounts sign in. The sign-
 
 The mock admin API lives in `src/mocks/` (`db/` holds the in-memory data, `handlers/` the endpoints).
 
+### Sample records to walk through
+
+Scenario IDs are exported as `SCENARIO`, `TX` (`src/mocks/seed.ts`) and `REC` (`src/mocks/records-seed.ts`). Good starting points, signed in as the moderator:
+
+| What | Where |
+| :-- | :-- |
+| The full chain: member → item → listing → offer → transaction → case | `/records/users/u-kunle` (MacBook Air: `I-1102` → `L-5101` → `O-6101` → `T-000301` → `NX-000202`) |
+| Restricted member | `/records/users/u-segun` |
+| New member with nothing yet | `/records/users/u-yemi` |
+| Listing hidden by moderation / removed | `/records/listings/L-5218` / `/records/listings/L-5214` |
+| Offer with three versions, still open | `/records/offers/O-6201` |
+| Feed post removed by its author; post with a removed comment | `/records/feed/F-910`; `/records/feed/F-904` |
+
+The top-bar search (press `/`) finds cases, transactions and records by ID or name. Support agents only find their own cases and those cases' transactions.
+
+### Exceptions and settings
+
+| What | Where |
+| :-- | :-- |
+| Every exception queue, with counts and a next action per row | `/exceptions` (administrator or support agent) |
+| Account appeal: Segun asks for his restriction to be lifted | `NX-000233` |
+| Possible duplicate listing | `NX-000220`, repeating `L-5219` |
+| Reservation about to expire, no action needed yet | `NX-000234` / `T-000308` |
+| Pilot settings, history and the agreements notice | `/settings` (administrator); every change also appears in the moderation log |
+
+Support agents see every exception but take a row with **Assign to me** before acting on it.
+
 ## Hosting notes
 
 - `vercel.json` serves `index.html` for unknown paths, long-caches hashed assets and sets the security headers from PRD §7 (strict CSP, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `X-Robots-Tag: noindex`).

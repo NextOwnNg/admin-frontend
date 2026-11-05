@@ -13,6 +13,9 @@ export function commaList<const T extends readonly [string, ...string[]]>(values
     .pipe(z.array(z.enum(values)).min(1))
 }
 
+/** An opaque paging cursor as the API issues them; anything else in the address is dropped */
+export const CURSOR = z.string().regex(/^[A-Za-z0-9._~-]{1,128}$/)
+
 type Shape = z.ZodObject<z.ZodRawShape>
 
 /**

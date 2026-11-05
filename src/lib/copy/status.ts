@@ -96,12 +96,13 @@ export function confirmationCount(count: 0 | 1 | 2): string {
   return `${count} of 2 confirmed`
 }
 
-export type Redaction = 'removed_by_author' | 'hidden_by_moderation'
+export type Redaction = 'removed_by_author' | 'hidden_by_moderation' | 'removed_by_moderation'
 
 /** Shown instead of redacted content, in lists and on the case (design §4.2) */
 export const REDACTION: Record<Redaction, string> = {
   removed_by_author: 'Content removed by its author',
   hidden_by_moderation: 'Content hidden by moderation',
+  removed_by_moderation: 'Content removed by moderation',
 }
 
 /** Recorded decisions on a case: Close report outcomes and transaction resolutions */
@@ -109,5 +110,6 @@ export const DECISION_OUTCOME: Record<string, string> = {
   no_violation: 'No violation',
   action_taken: 'Action taken',
   duplicate: 'Duplicate report',
+  upheld: 'Restriction upheld',
   ...TRANSACTION_OUTCOME,
 }

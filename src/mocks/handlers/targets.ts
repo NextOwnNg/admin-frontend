@@ -8,4 +8,5 @@ export const TARGET_TYPES: readonly TargetType[] = [
   'message',
   'transaction',
   'case',
+  'settings',
 ]

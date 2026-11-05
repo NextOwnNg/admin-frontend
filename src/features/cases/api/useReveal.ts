@@ -16,7 +16,7 @@ export function useReveal() {
     mutationFn: ({ scope, ...body }: RevealBody & { scope: RevealScope }) => reveal(scope, body, newIdempotencyKey()),
     onSuccess: (_result, { scope }) =>
       queryClient.invalidateQueries({
-        queryKey: scope.kind === 'case' ? caseQueryKey(scope.id) : ['admin', 'transaction', scope.id],
+        queryKey: scope.kind === 'case' ? caseQueryKey(scope.id) : (['admin', 'transaction', scope.id] as const),
       }),
   })
   return mutation.mutateAsync

@@ -14,17 +14,21 @@ export function NotesSection({ caseDetail }: { caseDetail: CaseDetail }) {
   const now = useNow()
   const addNote = useAddNote(caseDetail.id)
   const [body, setBody] = useState('')
-  const [key, setKey] = useState(newIdempotencyKey)
+  // One key per note: a retry of the same text reuses it, an edited note is a new intent with a new key
+  const [attempt, setAttempt] = useState<{ key: string; body: string } | null>(null)
   const [saved, setSaved] = useState(false)
 
   function save() {
     setSaved(false)
+    const text = body.trim()
+    const key = attempt?.body === text ? attempt.key : newIdempotencyKey()
+    setAttempt({ key, body: text })
     addNote.mutate(
-      { body: body.trim(), idempotencyKey: key },
+      { body: text, idempotencyKey: key },
       {
         onSuccess: () => {
           setBody('')
-          setKey(newIdempotencyKey())
+          setAttempt(null)
           setSaved(true)
         },
       },

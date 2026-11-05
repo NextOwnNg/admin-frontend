@@ -71,3 +71,22 @@ describe('Moderation log (design §4.6)', () => {
     ).toBeInTheDocument()
   })
 })
+
+describe('settings changes in the log (Phase C design §4.5)', () => {
+  it('filters to settings and links each change to the settings page', async () => {
+    await signInAs('administrator')
+    const { data } = await apiClient.get<{ version: number }>('/admin/settings')
+    await apiClient.put(
+      '/admin/settings/offerLifetimeHours',
+      { value: 96, reason: 'Pilot feedback on offer timing', expectedVersion: data.version },
+      { headers: idempotencyHeaders(newIdempotencyKey()) },
+    )
+    renderWithProviders(routes, { initialPath: '/audit' })
+    await rows()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Target type' }), 'Settings')
+    await waitFor(async () => expect(await rows()).toHaveLength(1))
+    const [row] = await rows()
+    expect(row).toHaveTextContent('Settings changed')
+    expect(within(row!).getByRole('link', { name: 'Offer lifetime' })).toHaveAttribute('href', '/settings')
+  })
+})

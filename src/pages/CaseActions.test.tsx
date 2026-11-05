@@ -6,8 +6,11 @@ import { apiClient } from '@/lib/api/client'
 import type { CaseDetail } from '@/lib/api/types/cases'
 import type { StaffRole } from '@/lib/copy/labels'
 import { casesDb } from '@/mocks/db/cases'
+import { staffMember } from '@/mocks/fixtures/staff'
+import { REC } from '@/mocks/records-seed'
 import { SCENARIO } from '@/mocks/seed'
 import { signInAs } from '@/test/auth'
+import { expectNoA11yViolations } from '@/test/axe'
 import { renderWithProviders } from '@/test/utils'
 
 async function openCase(id: string, role: StaffRole = 'moderator') {
@@ -97,5 +100,75 @@ describe('case actions (ADM-FE-05)', () => {
     await userEvent.click(within(panel).getByRole('button', { name: 'Assign to me' }))
     await waitFor(() => expect(within(panel).getByText('Tunde Bakare')).toBeInTheDocument())
     expect(within(panel).getByText('Assigned')).toBeInTheDocument()
+  })
+})
+
+describe('appeals and duplicates (Phase C design §4.4)', () => {
+  const outcomes = (dialog: HTMLElement) =>
+    within(within(dialog).getByRole('combobox', { name: 'Outcome' }))
+      .getAllByRole('option')
+      .filter((o) => (o as HTMLOptionElement).value)
+      .map((o) => o.textContent)
+
+  it('shows the restriction and the statement, and closes an appeal as upheld', async () => {
+    const panel = await openCase(SCENARIO.appeal)
+    const summary = screen.getByRole('region', { name: 'Summary' })
+    expect(within(summary).getByText('Appeal from the member')).toBeInTheDocument()
+    expect(within(summary).getByText(/^Restricted until /)).toBeInTheDocument()
+    expect(within(summary).getByText(/I lost my temper/)).toBeInTheDocument()
+    expect(within(panel).getByRole('button', { name: 'Lift restriction' })).toBeInTheDocument()
+
+    await userEvent.click(within(panel).getByRole('button', { name: 'Close report' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Close report' })
+    expect(outcomes(dialog)).toEqual(['Restriction upheld'])
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    await act(panel, 'Close report', async (d) => {
+      await userEvent.selectOptions(within(d).getByRole('combobox', { name: 'Outcome' }), 'upheld')
+      await pickReason(d, 'Restriction stays in place')
+    })
+    await waitFor(() => expect(within(panel).getByText('Restriction upheld')).toBeInTheDocument())
+  })
+
+  it('never offers "Restriction upheld" on an ordinary report', async () => {
+    const panel = await openCase(SCENARIO.noEvidence)
+    await userEvent.click(within(panel).getByRole('button', { name: 'Close report' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Close report' })
+    expect(outcomes(dialog)).not.toContain('Restriction upheld')
+  })
+
+  it('lifts the restriction, and the member record says so', async () => {
+    const panel = await openCase(SCENARIO.appeal)
+    await act(panel, 'Lift restriction', (d) => pickReason(d, 'Decided on the evidence'))
+    await screen.findByRole('status', { name: 'Recorded' })
+    const parties = screen.getByRole('region', { name: 'Parties' })
+    await userEvent.click(within(parties).getByRole('link', { name: 'Segun F.' }))
+    const profile = await screen.findByRole('region', { name: 'Profile' })
+    expect(profile).toHaveTextContent('Active')
+  })
+
+  it('links a duplicate to the listing it repeats, for staff who may open it', async () => {
+    await openCase(SCENARIO.duplicate)
+    const summary = screen.getByRole('region', { name: 'Summary' })
+    expect(within(summary).getByRole('link', { name: /Earlier listing of the same item/ })).toHaveAttribute(
+      'href',
+      `/records/listings/${REC.duplicateListing}`,
+    )
+    expect(await within(summary).findByText('Possible duplicate of')).toBeInTheDocument()
+  })
+
+  it('names the duplicate without a link for a support agent', async () => {
+    casesDb.record(SCENARIO.duplicate)!.assignee = staffMember('s-agent')
+    await openCase(SCENARIO.duplicate, 'support_agent')
+    const summary = screen.getByRole('region', { name: 'Summary' })
+    expect(within(summary).getByText(/Earlier listing of the same item/)).toBeInTheDocument()
+    expect(within(summary).queryByRole('link', { name: /Earlier listing/ })).not.toBeInTheDocument()
+  })
+
+  it('has no accessibility problems on an appeal or a duplicate', async () => {
+    await signInAs('moderator')
+    const appeal = renderWithProviders(routes, { initialPath: `/cases/${SCENARIO.appeal}` })
+    await screen.findByRole('region', { name: 'Case status' })
+    await expectNoA11yViolations(appeal.container)
   })
 })
