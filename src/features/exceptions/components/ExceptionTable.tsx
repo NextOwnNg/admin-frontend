@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { DataTable, type TableStatus } from '@/components/data/DataTable'
+import { DataTable, type RowAction, type TableStatus } from '@/components/data/DataTable'
 import { SeverityBadge } from '@/components/domain/SeverityBadge'
 import { RecordLink } from '@/features/records/components/RecordLink'
 import { useNow } from '@/hooks/useNow'
@@ -20,6 +20,7 @@ export function ExceptionTable({
   canOpenCase,
   canBrowse,
   empty,
+  rowActions,
 }: {
   label: string
   rows: ExceptionRow[] | undefined
@@ -31,6 +32,8 @@ export function ExceptionTable({
   /** Whether the viewer may open record pages; links nobody can follow are plain text */
   canBrowse: boolean
   empty: ReactNode
+  /** Administrators' assign menu per row */
+  rowActions?: (row: ExceptionRow) => RowAction[]
 }) {
   const now = useNow()
   return (
@@ -42,6 +45,7 @@ export function ExceptionTable({
       status={status}
       onRetry={onRetry}
       empty={empty}
+      rowActions={rowActions}
       columns={[
         { id: 'priority', header: 'Priority', cell: (r) => <SeverityBadge severity={r.priority} /> },
         {

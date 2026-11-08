@@ -53,6 +53,12 @@ const options = <T extends string>(labels: Record<T, string | { label: string }>
     label: typeof label === 'string' ? label : label.label,
   }))
 const id = (value: string) => <span className="whitespace-nowrap tabular-nums">{value}</span>
+/** An ID cell that opens its record, like the name beside it */
+const idLink = (kind: RecordKind, value: string) => (
+  <span className="whitespace-nowrap tabular-nums">
+    <RecordLink record={{ kind, id: value, label: value }} showId={false} />
+  </span>
+)
 const when = (iso: string) => <span className="tabular-nums">{formatWATDate(iso)}</span>
 
 /** Active areas of active cities, from the pilot settings */
@@ -96,7 +102,7 @@ export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
         header: 'Name',
         cell: (m) => <RecordLink record={{ kind: 'users', id: m.id, label: m.displayName }} showId={false} />,
       },
-      { id: 'id', header: 'Member ID', cell: (m) => id(m.id) },
+      { id: 'id', header: 'Member ID', cell: (m) => idLink('users', m.id) },
       { id: 'area', header: 'Area', cell: (m) => m.area },
       { id: 'joined', header: 'Joined', cell: (m) => when(m.joinedAt) },
       { id: 'status', header: 'Status', cell: (m) => memberStatusText(m.status, m.restrictedUntil) },
@@ -122,7 +128,7 @@ export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
         header: 'Item',
         cell: (i) => <RecordLink record={{ kind: 'items', id: i.id, label: i.title }} showId={false} />,
       },
-      { id: 'id', header: 'Item ID', cell: (i) => id(i.id) },
+      { id: 'id', header: 'Item ID', cell: (i) => idLink('items', i.id) },
       { id: 'owner', header: 'Owner', cell: (i) => <RecordLink record={i.owner} showId={false} /> },
       { id: 'category', header: 'Category', cell: (i) => i.category },
       { id: 'availability', header: 'Availability', cell: (i) => AVAILABILITY[i.availability] },
@@ -142,7 +148,7 @@ export const BROWSERS: { [K in RecordKind]: BrowserConfig<K> } = {
         header: 'Listing',
         cell: (l) => <RecordLink record={{ kind: 'listings', id: l.id, label: l.title }} showId={false} />,
       },
-      { id: 'id', header: 'Listing ID', cell: (l) => id(l.id) },
+      { id: 'id', header: 'Listing ID', cell: (l) => idLink('listings', l.id) },
       { id: 'seller', header: 'Seller', cell: (l) => <RecordLink record={l.seller} showId={false} /> },
       {
         id: 'price',

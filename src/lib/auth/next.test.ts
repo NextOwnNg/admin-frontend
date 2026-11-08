@@ -16,6 +16,11 @@ describe('safeNext (no open redirects)', () => {
   it('never returns to the sign-in page itself', () => {
     expect(safeNext('/sign-in?next=/x')).toBe('/')
   })
+
+  it('recognises the sign-in page in any letter case (Phase A review)', () => {
+    expect(safeNext('/SIGN-IN?next=/x')).toBe('/')
+    expect(safeNext('/Sign-In')).toBe('/')
+  })
 })
 
 describe('signInPath', () => {

@@ -33,15 +33,22 @@ export function GlobalSearch() {
   // Only the answer to what is in the box now counts
   const current = settled === text && query.length >= MIN_SEARCH ? search.data : undefined
 
-  const groups = useMemo<Group[]>(
-    () =>
-      (current?.groups ?? []).map((g) => ({
-        id: g.kind,
-        label: RECORD_KIND_LABEL[g.kind],
-        results: g.results.map((r) => ({ ...r, key: resultKey(r) })),
-      })),
-    [current],
-  )
+  const groups = useMemo<Group[]>(() => {
+    const all = (current?.groups ?? []).map((g) => ({
+      id: g.kind,
+      label: RECORD_KIND_LABEL[g.kind],
+      results: g.results.map((r) => ({ ...r, key: resultKey(r) })),
+    }))
+    // An exact ID match leads: its group first, and it first within the group
+    const exactHref = current?.exact?.href
+    if (!exactHref) return all
+    const isExact = (r: SearchResult) => r.href === exactHref
+    const ordered = all.map((g) => ({
+      ...g,
+      results: [...g.results.filter(isExact), ...g.results.filter((r) => !isExact(r))],
+    }))
+    return [...ordered.filter((g) => g.results.some(isExact)), ...ordered.filter((g) => !g.results.some(isExact))]
+  }, [current])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -83,63 +90,77 @@ export function GlobalSearch() {
           ? `No matches for "${query}"`
           : 'Searching…'
 
+  const resultCount = groups.reduce((n, g) => n + g.results.length, 0)
+  // Read out what the list shows, since the list itself isn't announced as it changes
+  const announcement =
+    text.trim().length < MIN_SEARCH
+      ? ''
+      : resultCount > 0
+        ? `${resultCount} ${resultCount === 1 ? 'result' : 'results'}`
+        : message
+
   return (
-    <ComboBox
-      aria-label="Search records by ID or name"
-      className="w-72"
-      inputValue={text}
-      onInputChange={setText}
-      items={groups}
-      selectedKey={null}
-      onSelectionChange={choose}
-      allowsCustomValue
-      allowsEmptyCollection
-      menuTrigger="input"
-    >
-      <div className="relative">
-        <Search
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted"
-        />
-        <Input
-          ref={inputRef}
-          type="search"
-          placeholder="Search by ID or name"
-          maxLength={80}
-          className="field-input h-control-compact w-full pl-9 text-compact"
-          onKeyDown={(e) => {
-            // Enter with no option highlighted opens an exact ID match, and only for the answered query
-            if (e.key !== 'Enter' || e.currentTarget.getAttribute('aria-activedescendant')) return
-            if (current) {
-              if (current.exact) open(current.exact.href)
-            } else if (text.trim().length >= MIN_SEARCH) {
-              pendingEnter.current = text.trim()
-            }
-          }}
-        />
-      </div>
-      <ComboBox.Popover placement="bottom end" className="w-96">
-        <ListBox renderEmptyState={() => <p className="px-3 py-2 text-compact text-muted">{message}</p>}>
-          {(item) => {
-            const group = item as Group
-            return (
-              <ListBox.Section id={group.id}>
-                <Header className="px-3 pt-2 pb-1 text-caption font-semibold text-muted">{group.label}</Header>
-                <Collection items={group.results}>
-                  {(r) => (
-                    <ListBox.Item id={r.key} textValue={`${r.label} ${r.id}`}>
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate text-compact text-ink">{r.label}</span>
-                        <span className="text-caption text-muted tabular-nums">{r.id}</span>
-                      </span>
-                    </ListBox.Item>
-                  )}
-                </Collection>
-              </ListBox.Section>
-            )
-          }}
-        </ListBox>
-      </ComboBox.Popover>
-    </ComboBox>
+    <>
+      <p data-testid="search-status" role="status" className="sr-only">
+        {announcement}
+      </p>
+      <ComboBox
+        aria-label="Search records by ID or name"
+        className="w-48 desktop:w-72"
+        inputValue={text}
+        onInputChange={setText}
+        items={groups}
+        selectedKey={null}
+        onSelectionChange={choose}
+        allowsCustomValue
+        allowsEmptyCollection
+        menuTrigger="input"
+      >
+        <div className="relative">
+          <Search
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-muted"
+          />
+          <Input
+            ref={inputRef}
+            type="search"
+            placeholder="Search ID or name"
+            maxLength={80}
+            className="field-input h-control-compact w-full pl-9 text-compact"
+            onKeyDown={(e) => {
+              // Enter with no option highlighted opens an exact ID match, and only for the answered query
+              if (e.key !== 'Enter' || e.currentTarget.getAttribute('aria-activedescendant')) return
+              if (current) {
+                if (current.exact) open(current.exact.href)
+              } else if (text.trim().length >= MIN_SEARCH) {
+                pendingEnter.current = text.trim()
+              }
+            }}
+          />
+        </div>
+        <ComboBox.Popover placement="bottom end" className="w-96">
+          <ListBox renderEmptyState={() => <p className="px-3 py-2 text-compact text-muted">{message}</p>}>
+            {(item) => {
+              const group = item as Group
+              return (
+                <ListBox.Section id={group.id}>
+                  <Header className="px-3 pt-2 pb-1 text-caption font-semibold text-muted">{group.label}</Header>
+                  <Collection items={group.results}>
+                    {(r) => (
+                      <ListBox.Item id={r.key} textValue={`${r.label} ${r.id}`}>
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate text-compact text-ink">{r.label}</span>
+                          <span className="text-caption text-muted tabular-nums">{r.id}</span>
+                        </span>
+                      </ListBox.Item>
+                    )}
+                  </Collection>
+                </ListBox.Section>
+              )
+            }}
+          </ListBox>
+        </ComboBox.Popover>
+      </ComboBox>
+    </>
   )
 }

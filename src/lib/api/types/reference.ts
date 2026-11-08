@@ -1,3 +1,4 @@
+import type { CaseKind } from '@/lib/api/types/cases'
 import type { CaseSummary } from '@/lib/api/types/cases'
 import type { StaffRole } from '@/lib/copy/labels'
 import type { Severity } from '@/lib/copy/status'
@@ -15,6 +16,8 @@ export type ReasonCode = {
   /** Violation codes go with sanctions; decision codes with resolutions (design §9a.6) */
   kind: 'violation' | 'decision'
   appliesTo: TargetType[]
+  /** Only on these kinds of case, when set (a decision that only means something on an appeal or a duplicate) */
+  caseKinds?: CaseKind[]
 }
 
 /** `GET /admin/staff`: active staff, for assignment */

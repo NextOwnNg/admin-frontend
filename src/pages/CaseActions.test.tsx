@@ -147,6 +147,48 @@ describe('appeals and duplicates (Phase C design §4.4)', () => {
     expect(profile).toHaveTextContent('Active')
   })
 
+  it('says the restriction was lifted once it has been, not "Restricted until" (C2 review)', async () => {
+    const panel = await openCase(SCENARIO.appeal)
+    await act(panel, 'Lift restriction', (d) => pickReason(d, 'Decided on the evidence'))
+    await screen.findByRole('status', { name: 'Recorded' })
+    const summary = screen.getByRole('region', { name: 'Summary' })
+    expect(await within(summary).findByText(/^Restriction lifted /)).toBeInTheDocument()
+    expect(within(summary).queryByText(/^Restricted until /)).not.toBeInTheDocument()
+  })
+
+  const reasonsFor = async (caseId: string, outcome: string) => {
+    const panel = await openCase(caseId)
+    await userEvent.click(within(panel).getByRole('button', { name: 'Close report' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Close report' })
+    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Outcome' }), outcome)
+    const reason = within(dialog).getByRole('combobox', { name: 'Reason' })
+    await waitFor(() => expect(within(reason).getAllByRole('option').length).toBeGreaterThan(1))
+    return within(reason)
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+  }
+
+  it('offers the appeal and duplicate decisions only on their own cases (C2 review)', async () => {
+    const onReport = await reasonsFor(SCENARIO.noEvidence, 'no_violation')
+    expect(onReport).not.toContain('Not a duplicate')
+    expect(onReport).not.toContain('Restriction stays in place')
+  })
+
+  it('offers "Not a duplicate" on a duplicate case', async () => {
+    expect(await reasonsFor(SCENARIO.duplicate, 'no_violation')).toContain('Not a duplicate')
+  })
+
+  it('offers transaction outcomes when a support agent records a decision on a transaction case (B review)', async () => {
+    const panel = await openCase(SCENARIO.paymentDispute, 'support_agent')
+    await userEvent.click(within(panel).getByRole('button', { name: 'Record decision' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Record decision' })
+    expect(outcomes(dialog)).toEqual([
+      'Completed (both participants confirmed)',
+      'Resolved by support: cancelled',
+      'Resolved by support: no completion',
+    ])
+  })
+
   it('links a duplicate to the listing it repeats, for staff who may open it', async () => {
     await openCase(SCENARIO.duplicate)
     const summary = screen.getByRole('region', { name: 'Summary' })

@@ -8,10 +8,21 @@ export const RANGE_MESSAGES = {
   tooLong: `Choose a range of ${MAX_RANGE_DAYS} days or fewer.`,
 } as const
 
-/** What's wrong with a date range, on the field to fix; the form and the mock API share it */
-export function rangeError(from: string | undefined, to: string): { field: 'from' | 'to'; message: string } | null {
+/** The mock pilot's start, used until the API's own `pilotStart` has arrived */
+export const PILOT_START_HINT = '2026-10-01'
+
+/**
+ * What's wrong with a date range, on the field to fix; the form and the mock API share it. With `pilotStart`, the
+ * length counts from the pilot start, since nothing before it is read.
+ */
+export function rangeError(
+  from: string | undefined,
+  to: string,
+  pilotStart?: string,
+): { field: 'from' | 'to'; message: string } | null {
   if (from === undefined) return null
   if (from > to) return { field: 'from', message: RANGE_MESSAGES.order }
-  if (daysBetween(from, to) > MAX_RANGE_DAYS) return { field: 'to', message: RANGE_MESSAGES.tooLong }
+  const start = pilotStart && pilotStart > from ? pilotStart : from
+  if (daysBetween(start, to) > MAX_RANGE_DAYS) return { field: 'to', message: RANGE_MESSAGES.tooLong }
   return null
 }

@@ -1,4 +1,5 @@
 import { ChartColumn } from 'lucide-react'
+import { useState } from 'react'
 import { PageHead } from '@/components/seo/PageHead'
 import { PlainButton } from '@/components/ui/Button'
 import { EmptyState, ErrorState, PermissionDenied } from '@/components/ui/States'
@@ -10,7 +11,7 @@ import { LiquiditySection } from '@/features/dashboard/sections/LiquiditySection
 import { ModeRatesSection } from '@/features/dashboard/sections/ModeRatesSection'
 import { SupportSection } from '@/features/dashboard/sections/SupportSection'
 import { TrustSection } from '@/features/dashboard/sections/TrustSection'
-import { rangeError } from '@/features/dashboard/range'
+import { PILOT_START_HINT, rangeError } from '@/features/dashboard/range'
 import { dashboardFilterSchema, resolveRange } from '@/features/dashboard/schemas'
 import { useSettings } from '@/features/settings/api/useSettings'
 import { useUrlFilters } from '@/hooks/useUrlFilters'
@@ -34,7 +35,7 @@ function Figures({ data, showAreas }: { data: DashboardData; showAreas: boolean 
 
 /** How the pilot is doing, by PRD §13.1's definitions, with no targets (ADM-FE-10, Phase D design §4). */
 export function DashboardPage() {
-  const { filters, setFilters, clear } = useUrlFilters(dashboardFilterSchema)
+  const { filters, present, setFilters, clear } = useUrlFilters(dashboardFilterSchema)
   const settings = useSettings()
   const categories = settings.data?.categories ?? []
   const areas = settings.data?.locations.flatMap((city) => city.areas) ?? []
@@ -42,8 +43,10 @@ export function DashboardPage() {
   const category = categories.some((c) => c.id === filters.category) ? filters.category : undefined
   const area = areas.some((a) => a.id === filters.area) ? filters.area : undefined
 
+  // Nothing before the pilot is read, so a long range that starts earlier is measured from it
+  const [pilotStart, setPilotStart] = useState(PILOT_START_HINT)
   const range = resolveRange(filters, watToday(serverNow()))
-  const problem = range.preset === 'custom' ? rangeError(range.from, range.to) : null
+  const problem = range.preset === 'custom' ? rangeError(range.from, range.to, pilotStart) : null
   const query: DashboardQuery | null =
     settings.isSuccess && !problem
       ? {
@@ -55,6 +58,7 @@ export function DashboardPage() {
       : null
   const dashboard = useDashboard(query)
   const data = dashboard.data
+  if (data && data.pilotStart !== pilotStart) setPilotStart(data.pilotStart)
   // A held query (invalid range) keeps its old data as a placeholder without loading anything
   const updating = query !== null && dashboard.isPlaceholderData && dashboard.isFetching
   const forbidden = isForbidden(dashboard.error) || isForbidden(settings.error)
@@ -88,9 +92,16 @@ export function DashboardPage() {
           title="No activity in this range"
           body="Try a longer date range, or clear the filters."
           action={
-            <PlainButton variant="secondary" onClick={clear}>
-              Clear filters
-            </PlainButton>
+            // On the default view there is nothing to clear: offer the widest range instead
+            Object.keys(present).length > 0 ? (
+              <PlainButton variant="secondary" onClick={clear}>
+                Clear filters
+              </PlainButton>
+            ) : (
+              <PlainButton variant="secondary" onClick={() => setFilters({ range: 'pilot' })}>
+                Pilot to date
+              </PlainButton>
+            )
           }
         />
       )
@@ -115,7 +126,8 @@ export function DashboardPage() {
           <DashboardFilters
             filters={filters}
             range={range}
-            shown={data?.range}
+            shown={updating ? undefined : data?.range}
+            pilotStart={pilotStart}
             categories={categories}
             areas={areas}
             category={category}

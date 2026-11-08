@@ -47,7 +47,18 @@ export function TrustSection({ data }: { data: DashboardData }) {
           <LineChart {...CHART} data={weeks} margin={{ top: 8, right: 16 }}>
             <CartesianGrid {...GRID} />
             <XAxis dataKey="week" {...AXIS} />
-            <YAxis allowDecimals {...AXIS} />
+            <YAxis
+              allowDecimals
+              width={72}
+              label={{
+                value: 'per 100 accepted',
+                angle: -90,
+                position: 'insideLeft',
+                fill: 'var(--nx-slate)',
+                fontSize: 12,
+              }}
+              {...AXIS}
+            />
             <Tooltip
               {...TOOLTIP}
               cursor={{ stroke: 'var(--nx-border)' }}

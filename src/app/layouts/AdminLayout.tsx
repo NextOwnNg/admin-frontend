@@ -26,7 +26,7 @@ export function AdminLayout() {
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar />
-        <main id="main" className="mx-auto w-full max-w-table flex-1 px-6 py-8">
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-table flex-1 px-6 py-8">
           <Outlet />
         </main>
       </div>

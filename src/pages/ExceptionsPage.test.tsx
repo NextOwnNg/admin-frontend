@@ -45,7 +45,9 @@ describe('exceptions (ADM-FE-08, Phase C design §4.4)', () => {
     expect(await rowOf('Open disputes', SCENARIO.paymentDispute)).toBeDefined()
 
     const row = await rowOf('Open disputes', SCENARIO.disputedCancellation)
-    await userEvent.click(within(row!).getByRole('link', { name: 'Resolve dispute' }))
+    await userEvent.click(
+      within(row!).getByRole('link', { name: `Resolve dispute for ${SCENARIO.disputedCancellation}` }),
+    )
     const panel = await screen.findByRole('region', { name: 'Transaction status' })
     await userEvent.click(within(panel).getByRole('button', { name: 'Resolve dispute' }))
     const dialog = await screen.findByRole('dialog', { name: 'Resolve dispute' })
@@ -59,11 +61,13 @@ describe('exceptions (ADM-FE-08, Phase C design §4.4)', () => {
     await signInAs('support_agent')
     renderWithProviders(routes, { initialPath: '/exceptions?queue=appeal' })
     const row = await rowOf('Account appeals', SCENARIO.appeal)
-    expect(within(row!).queryByRole('link', { name: 'Review appeal' })).not.toBeInTheDocument()
-    await userEvent.click(within(row!).getByRole('button', { name: 'Assign to me' }))
+    expect(within(row!).queryByRole('link', { name: `Review appeal for ${SCENARIO.appeal}` })).not.toBeInTheDocument()
+    await userEvent.click(within(row!).getByRole('button', { name: `Assign to me for ${SCENARIO.appeal}` }))
     await waitFor(async () =>
       expect(
-        within((await rowOf('Account appeals', SCENARIO.appeal))!).getByRole('link', { name: 'Review appeal' }),
+        within((await rowOf('Account appeals', SCENARIO.appeal))!).getByRole('link', {
+          name: `Review appeal for ${SCENARIO.appeal}`,
+        }),
       ).toHaveAttribute('href', `/cases/${SCENARIO.appeal}`),
     )
   })
@@ -84,13 +88,13 @@ describe('exceptions (ADM-FE-08, Phase C design §4.4)', () => {
     casesDb.record(SCENARIO.appeal)!.assignee = staffMember('s-mod')
     casesDb.bumpVersion(SCENARIO.appeal)
 
-    await userEvent.click(within(row!).getByRole('button', { name: 'Assign to me' }))
+    await userEvent.click(within(row!).getByRole('button', { name: `Assign to me for ${SCENARIO.appeal}` }))
     expect(await screen.findByText('This case changed since you opened it.')).toBeInTheDocument()
     await waitFor(async () =>
       expect((await rowOf('Account appeals', SCENARIO.appeal))!).toHaveTextContent('Tunde Bakare'),
     )
     const fresh = (await rowOf('Account appeals', SCENARIO.appeal))!
-    expect(within(fresh).queryByRole('link', { name: 'Review appeal' })).not.toBeInTheDocument()
+    expect(within(fresh).queryByRole('link', { name: `Review appeal for ${SCENARIO.appeal}` })).not.toBeInTheDocument()
     // Someone else has it: no second click can take it from them (final review)
     expect(within(fresh).queryByRole('button', { name: /Assign .*to me/ })).not.toBeInTheDocument()
     expect(fresh).toHaveTextContent('Tunde Bakare has this')
@@ -124,12 +128,85 @@ describe('exceptions (ADM-FE-08, Phase C design §4.4)', () => {
     expect(await screen.findByText('Nothing waiting in Account appeals')).toBeInTheDocument()
   })
 
+  it('says a row resolved moments ago was resolved, not that it is forbidden (C2 review)', async () => {
+    await signInAs('support_agent')
+    renderWithProviders(routes, { initialPath: '/exceptions?queue=appeal' })
+    const row = await rowOf('Account appeals', SCENARIO.appeal)
+    casesDb.record(SCENARIO.appeal)!.status = 'closed'
+    await userEvent.click(within(row!).getByRole('button', { name: `Assign to me for ${SCENARIO.appeal}` }))
+    expect(await screen.findByText('This case was already resolved.')).toBeInTheDocument()
+    expect(screen.queryByText(/permission/i)).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText(SCENARIO.appeal)).not.toBeInTheDocument())
+  })
+
+  it('starts a new tab at its first page with no banner from the last one (Review Focus 2)', async () => {
+    await signInAs('support_agent')
+    const { router } = renderWithProviders(routes, { initialPath: '/exceptions?queue=appeal&cursor=abc' })
+    const row = await rowOf('Account appeals', SCENARIO.appeal)
+    casesDb.record(SCENARIO.appeal)!.assignee = staffMember('s-mod')
+    casesDb.bumpVersion(SCENARIO.appeal)
+    await userEvent.click(within(row!).getByRole('button', { name: `Assign to me for ${SCENARIO.appeal}` }))
+    await screen.findByText('This case changed since you opened it.')
+    await userEvent.click(within(await tabs()).getByRole('link', { name: /^Open disputes/ }))
+    await grid('Open disputes')
+    expect(screen.queryByText('This case changed since you opened it.')).not.toBeInTheDocument()
+    expect(router.state.location.search).not.toContain('cursor')
+  })
+
+  it('reads only the queue on screen, and ignores a page cursor without a queue (C2 review)', async () => {
+    await signInAs('administrator')
+    const seen: URLSearchParams[] = []
+    server.events.on('request:start', ({ request }) => {
+      if (request.url.includes('/admin/exceptions')) seen.push(new URL(request.url).searchParams)
+    })
+    const first = renderWithProviders(routes, { initialPath: '/exceptions?queue=dispute' })
+    await grid('Open disputes')
+    expect(seen.every((p) => p.get('queue') === 'dispute')).toBe(true)
+    first.unmount()
+
+    seen.length = 0
+    renderWithProviders(routes, { initialPath: '/exceptions?cursor=abc' })
+    await grid('Partial confirmations')
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every((p) => !p.has('cursor'))).toBe(true)
+  })
+
+  it('keeps the tab it opened on when that queue empties (C2 review)', async () => {
+    await signInAs('administrator')
+    const { queryClient } = renderWithProviders(routes, { initialPath: '/exceptions' })
+    const table = await grid('Partial confirmations')
+    const ids = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((r) => /NX-\d{6}/.exec(r.textContent ?? '')?.[0])
+    for (const id of ids) if (id) casesDb.record(id)!.status = 'closed'
+    await queryClient.invalidateQueries({ queryKey: ['admin', 'exceptions'] })
+    expect(await screen.findByText('Nothing waiting in Partial confirmations')).toBeInTheDocument()
+    expect(within(await tabs()).getByRole('link', { name: /^Partial confirmations/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  })
+
+  it('gives administrators an Assign menu on each row (Phase C design §4.4)', async () => {
+    await signInAs('administrator')
+    renderWithProviders(routes, { initialPath: '/exceptions?queue=appeal' })
+    const row = await rowOf('Account appeals', SCENARIO.appeal)
+    await userEvent.click(within(row!).getByRole('button', { name: `Actions for ${SCENARIO.appeal}` }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Assign to me' }))
+    await waitFor(async () =>
+      expect((await rowOf('Account appeals', SCENARIO.appeal))!).toHaveTextContent('Ngozi Adeyemi'),
+    )
+  })
+
   it('says when an expiring reservation needs nothing yet', async () => {
     await signInAs('administrator')
     renderWithProviders(routes, { initialPath: '/exceptions?queue=reservation_expiry' })
     const row = await rowOf('Reservation expiries', SCENARIO.expiringReservation)
     expect(row).toHaveTextContent(/Due to expire\. No action needed before/)
-    expect(within(row!).getByRole('link', { name: 'Open transaction' })).toBeInTheDocument()
+    expect(
+      within(row!).getByRole('link', { name: `Open transaction for ${SCENARIO.expiringReservation}` }),
+    ).toBeInTheDocument()
   })
 
   it('keeps moderators out', async () => {

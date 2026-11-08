@@ -38,7 +38,8 @@ export function TopBar() {
         <Breadcrumbs />
       </div>
 
-      <div className="hidden desktop:block">
+      {/* From tablet width up; below 768 px the console sits under the larger-screen notice */}
+      <div data-search-wrapper className="hidden tablet:block">
         {/* A fresh, empty box after every navigation */}
         <GlobalSearch key={location.key} />
       </div>
@@ -46,7 +47,7 @@ export function TopBar() {
       <EnvRibbon />
 
       <div className="flex items-center gap-3">
-        <div className="hidden flex-col items-end leading-tight tablet:flex">
+        <div className="hidden flex-col items-end leading-tight desktop:flex">
           <span className="text-compact font-semibold text-ink">{displayName}</span>
           <span className="text-caption text-muted">{roles.map((role) => ROLE_LABELS[role]).join(', ')}</span>
         </div>

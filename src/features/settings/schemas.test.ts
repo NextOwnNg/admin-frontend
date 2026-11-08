@@ -8,6 +8,29 @@ const messages = (result: ReturnType<typeof check>) => (result.success ? [] : re
 const area = (name: string, active = true) => ({ id: `a-${name}`, name, active })
 const lagos = (areas = [area('Yaba')], active = true) => [{ id: 'c-lagos', name: 'Lagos', active, areas }]
 
+describe('name rules (C2 review)', () => {
+  it('treats names differing only in inner spaces as the same', () => {
+    expect(messages(check('locations', lagos([area('Victoria Island'), area('Victoria  Island')])))).toContain(
+      'Victoria  Island is already in the list.',
+    )
+  })
+
+  it('treats prohibited items differing only in case or spaces as the same', () => {
+    const rules = { prohibitedItems: ['Live animals', ' live  ANIMALS '], rulesUrl: 'https://nextown.ng/rules' }
+    expect(check('contentRules', rules).success).toBe(false)
+  })
+
+  it('trims the support email before checking and saving it', () => {
+    const result = check('supportContacts', {
+      phone: '+2348000000100',
+      email: '  help@nextown.ng ',
+      hours: 'Mon–Sat, 8am–6pm WAT',
+    })
+    expect(result.success).toBe(true)
+    expect(result.success && (result.data as { email: string }).email).toBe('help@nextown.ng')
+  })
+})
+
 describe('settings rules (Phase C design §4.5)', () => {
   it('keeps the offer lifetime to whole hours from 24 to 168', () => {
     for (const bad of [23, 169, 72.5]) {

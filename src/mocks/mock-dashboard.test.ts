@@ -22,14 +22,11 @@ describe('mock dashboard (ADM-FE-10, Phase D design §4.4)', () => {
     expect((await failure(get(pilot())))?.status).toBe(403)
   })
 
-  it('refuses a start after the end, and more than 366 days, with field errors', async () => {
+  it('refuses a start after the end with a field error', async () => {
     await signInAs('administrator')
     const order = await failure(get({ from: '2026-11-02', to: '2026-11-01' }))
     expect(order?.status).toBe(422)
     expect(order?.fieldErrors).toHaveProperty('from')
-    const long = await failure(get({ from: '2025-10-01', to: '2026-11-04' }))
-    expect(long?.status).toBe(422)
-    expect(long?.fieldErrors).toHaveProperty('to')
   })
 
   it('answers the same query with the same figures', async () => {
@@ -94,6 +91,24 @@ describe('mock dashboard (ADM-FE-10, Phase D design §4.4)', () => {
     const bad = await failure(get({ from: '2026-10-45', to: today() }))
     expect(bad?.status).toBe(422)
     expect(bad?.fieldErrors).toHaveProperty('from')
+  })
+
+  it('clamps a long range that starts before the pilot instead of refusing it (D1 review)', async () => {
+    await signInAs('administrator')
+    const { range } = await get({ from: '2025-01-01', to: today() })
+    expect(range.from).toBe(PILOT_START)
+  })
+
+  it('lists every week of the range, with zeros, and no support week outside it (Review Focus 5)', async () => {
+    await signInAs('administrator')
+    const from = addDays(today(), -27)
+    const { trust, support, range } = await get({ from, to: today(), category: 'k-bikes', area: 'a-ajah' })
+    const mondays = (list: { weekStart: string }[]) => list.map((w) => w.weekStart)
+    const expected: string[] = []
+    const monday = (day: string) => addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7))
+    for (let w = monday(range.from); w <= range.to; w = addDays(w, 7)) expected.push(w)
+    expect(mondays(trust.weekly)).toEqual(expected)
+    expect(mondays(support.weekly)).toEqual(expected)
   })
 
   it('has no 7-day liquidity for listings published today', async () => {

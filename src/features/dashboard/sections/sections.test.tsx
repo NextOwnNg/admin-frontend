@@ -65,7 +65,7 @@ describe('rates by mode (Phase D design §4.2)', () => {
     expect(mixed).toHaveTextContent(percentOf(2, 3)!)
     expect(mixed).toHaveTextContent('3.2 days')
     expect(mixed).toHaveTextContent(percentOf(1, 3)!)
-    expect(screen.getByText(/maturity window of 7 days/)).toBeInTheDocument()
+    expect(screen.getByText(/accepted at least 7 days before the data-through time/)).toBeInTheDocument()
   })
 
   it('says when there is nothing to divide by, instead of 0%', () => {

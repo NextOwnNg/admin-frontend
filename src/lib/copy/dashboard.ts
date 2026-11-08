@@ -17,7 +17,8 @@ export const DASHBOARD_COPY = {
   },
   completion: {
     title: 'Completion rate',
-    definition: 'COMPLETED / accepted transactions after a maturity window of {days} days, by mode.',
+    definition:
+      'COMPLETED / accepted transactions accepted at least {days} days before the data-through time, by mode.',
   },
   timeToCompletion: {
     title: 'Time to completion',

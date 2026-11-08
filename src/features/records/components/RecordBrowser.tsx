@@ -35,7 +35,14 @@ export function RecordBrowser({ kind }: { kind: RecordKind }) {
   const pages = useCursorStack(values)
   const list = useRecordList(kind, values)
   const choices = useFilterOptions(config.filters)
-  const [text, setText] = useState(typeof values.q === 'string' ? values.q : '')
+  const addressQ = typeof values.q === 'string' ? values.q : ''
+  const [text, setText] = useState(addressQ)
+  // Back, forward or a link changed the search in the address: the box follows it
+  const [seenQ, setSeenQ] = useState(addressQ)
+  if (seenQ !== addressQ) {
+    setSeenQ(addressQ)
+    setText(addressQ)
+  }
 
   const set = (key: string, value: unknown) => setFilter(key, value)
   const chips: FilterChip[] = config.filters.flatMap((spec, index) => {

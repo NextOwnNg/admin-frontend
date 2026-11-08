@@ -28,7 +28,7 @@ export const dashboardHandlers: RequestHandler[] = [
     const to = params.get('to') ?? today
     if (from !== undefined && !isDate(from)) return invalid('from', 'Enter a date.')
     if (!isDate(to)) return invalid('to', 'Enter a date.')
-    const problem = rangeError(from, to)
+    const problem = rangeError(from, to, PILOT_START)
     if (problem) return invalid(problem.field, problem.message)
 
     // The figures cover the pilot up to today. A range wholly outside it keeps its dates and counts nothing.

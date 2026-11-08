@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm, type FieldValues, type Resolver } from 'react-hook-form'
 import { z } from 'zod'
 import { PlainButton } from '@/components/ui/Button'
@@ -30,9 +30,17 @@ export function SettingsSection({
   onDone: (saved: { entry: AuditEntry | null } | null) => void
 }) {
   const label = SECTION_LABELS[section]
+  // Leaving the form (Save or Cancel) puts focus back on this section's heading, not on the page
+  const heading = useRef<HTMLHeadingElement>(null)
+  const wasEditing = useRef(editing)
+  useEffect(() => {
+    if (wasEditing.current && !editing) heading.current?.focus()
+    wasEditing.current = editing
+  }, [editing])
   return (
     <Section
       title={label}
+      headingRef={heading}
       action={
         !editing && (
           <PlainButton
@@ -88,13 +96,15 @@ function EditForm({
     (form.formState.errors.value as { root?: { message?: string } } | undefined)?.root?.message
 
   const outcome = (result: SaveOutcome) => {
+    // Field errors keep the dialog open, with the reason; they also show under the fields on screen
+    if (result.kind === 'fields') {
+      for (const [path, message] of Object.entries(result.errors)) form.setError(path, { message })
+      return
+    }
     setPending(null)
     if (result.kind === 'saved') return onDone({ entry: result.entry })
-    if (result.kind === 'conflict') {
-      setBaseVersion(result.version)
-      return setConflict(true)
-    }
-    for (const [path, message] of Object.entries(result.errors)) form.setError(path, { message })
+    setBaseVersion(result.version)
+    setConflict(true)
   }
 
   return (
@@ -115,7 +125,9 @@ function EditForm({
       )}
       <SectionFields section={section} form={form} inUse={settings.inUse} />
       {rootError && (section === 'locations' || section === 'categories') && (
-        <p className="text-compact text-danger">{rootError}</p>
+        <p role="alert" className="text-compact text-danger">
+          {rootError}
+        </p>
       )}
       <div className="flex gap-2">
         <PlainButton type="submit" size="compact" variant="primary">

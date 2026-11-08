@@ -185,11 +185,15 @@ export function dashboardFor(
     disputed: listings.filter((l) => outcomeIs(l, 'disputed')).length,
     lossReported: listings.filter((l) => outcomeIs(l, 'lossReported')).length,
   })
-  const weeks = [...new Set(cohort.map((l) => weekOf(l.day)))].sort()
+  // Every week of the range, empty ones included, so a quiet week reads as zero rather than missing
+  const weeks: string[] = []
+  for (let w = weekOf(query.from); w <= query.to; w = addDays(w, 7)) weeks.push(w)
 
-  const opened = cohort.filter((l) => happened(l.support?.openedAt))
+  // Support cases opened within the range, on the cohort's listings
+  const inRange = (at: number) => watToday(at) >= query.from && watToday(at) <= query.to
+  const opened = cohort.filter((l) => l.support !== null && happened(l.support.openedAt) && inRange(l.support.openedAt))
   const resolved = opened.filter((l) => happened(l.support!.resolvedAt))
-  const supportWeeks = [...new Set(opened.map((l) => weekOf(watToday(l.support!.openedAt))))].sort()
+  const supportWeeks = weeks
 
   return {
     range: { from: query.from, to: query.to },

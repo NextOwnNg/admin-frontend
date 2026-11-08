@@ -194,6 +194,64 @@ describe('operations dashboard (ADM-FE-10, Phase D design §4)', () => {
     expect(screen.queryByRole('table', { name: 'Liquidity by area' })).not.toBeInTheDocument()
   })
 
+  it('asks for a long range that starts before the pilot instead of refusing it (D1 review)', async () => {
+    serve()
+    const requests = dashboardRequests()
+    await open(`/dashboard?from=2025-01-01&to=${watToday(serverNow())}`)
+    await screen.findByText(/Figures for/)
+    expect(requests.at(-1)!.get('from')).toBe('2025-01-01')
+    expect(screen.queryByText(/366 days or fewer/)).not.toBeInTheDocument()
+  })
+
+  it('starts Custom from the range asked for, not the old figures still on screen (D1 review)', async () => {
+    let release!: () => void
+    const held = new Promise<void>((resolve) => (release = resolve))
+    let calls = 0
+    server.use(
+      http.get(URL_, async () => {
+        calls += 1
+        if (calls > 1) await held
+        return HttpResponse.json(sampleDashboard())
+      }),
+    )
+    await open('/dashboard?range=7d')
+    await screen.findByText(/Figures for/)
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Date range' }), 'pilot')
+    await screen.findByText('Updating…')
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Date range' }), 'custom')
+    expect(screen.getByLabelText('From')).toHaveValue('2026-10-01')
+    release()
+  })
+
+  it('offers Pilot to date, not a Clear filters that does nothing, when the default view is empty (D1 review)', async () => {
+    const empty = sampleDashboard()
+    serve({
+      ...empty,
+      funnel: { published: 0, receivedOffer: 0, accepted: 0, completed: 0 },
+      support: { ...empty.support, opened: 0, resolved: 0, weekly: [] },
+    })
+    const { router } = await open()
+    await screen.findByRole('heading', { name: 'No activity in this range' })
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Pilot to date' }))
+    await waitFor(() => expect(router.state.location.search).toContain('range=pilot'))
+  })
+
+  it('writes date chips as dates, and shows no preset chip under Custom (D1 review)', async () => {
+    serve()
+    await open('/dashboard?range=7d&from=2026-10-10&to=2026-11-08')
+    const chips = await screen.findByRole('list', { name: 'Active filters' })
+    expect(chips).toHaveTextContent('From 10 Oct 2026')
+    expect(chips).toHaveTextContent('To 8 Nov 2026')
+    expect(chips).not.toHaveTextContent('Last 7 days')
+  })
+
+  it('announces a date error (D1 review)', async () => {
+    serve()
+    await open('/dashboard?from=2026-10-20&to=2026-10-10')
+    expect(await screen.findByRole('alert')).toHaveTextContent('The start date must be on or before the end date.')
+  })
+
   it('is accessible', async () => {
     serve()
     const { container } = await open()

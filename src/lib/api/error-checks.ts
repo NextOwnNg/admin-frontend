@@ -13,6 +13,9 @@ export const isNotFound = (error: unknown) => toApiError(error).status === 404
 /** The case or record changed since it was opened: show the latest and ask for a review (PRD §3.3). */
 export const isConflict = (error: unknown) => toApiError(error).status === 409
 
+/** The case was resolved or closed before this action reached it: nothing left to do (a 409 of its own) */
+export const isCaseResolved = (error: unknown) => toApiError(error).code === 'CASE_RESOLVED'
+
 /** A read worth trying again: the request didn't arrive or the server failed. Never a 4xx (PRD §3.3). */
 export function isRetryable(error: unknown) {
   const { status } = toApiError(error)

@@ -81,6 +81,21 @@ Support agents see every exception but take a row with **Assign to me** before a
 
 The mock's dashboard figures are **fictional and generated** from a fixed seed, one set of listings per day since the mock pilot start (1 October 2026). They don't match the sample records above. Every chart has a table (Chart / Table, remembered per user), and support minutes and cost per deal read "Not measured yet" until operations supplies those inputs.
 
+## Questions for the real admin API
+
+The mock answers these one way. The real API may choose differently; each is a single place to change in the console.
+
+| Question | What the mock does now |
+| :-- | :-- |
+| Cursor and ID formats | Cursors are opaque strings of `A–Z a–z 0–9 . _ ~ -`, up to 128 characters. IDs look like `NX-000202`, `T-000301`, `u-kunle`, `s-mod`. The console drops anything else from the address |
+| Filtering records by area and category | By **name**. Matching by settings ID would survive renames and tell apart the same area name in two cities |
+| A 409 and its idempotency key | A conflict is not stored under the key, so the same key can succeed after a reload. If the real API stores it, the console's "Try again" after a conflict needs a new key |
+| An answer lost in transit | The console reads the record back. A settings save counts as saved when the section now equals what was sent, so an identical change saved by someone else at that moment would also read as yours |
+| A revealed phone number | The revealed value stays in memory only while its section is on screen. The mock logs a retried reveal twice |
+| Exceptions for support agents | Every agent sees every exception and takes unassigned ones for themselves. The real API may scope rows per agent |
+| Dashboard attribution | Every event counts toward the day its listing was published (a cohort view). Completion counts deals accepted at least 7 days before the data-through time. The pilot start comes from the API (`pilotStart`) |
+| Client error reports | Not built yet (Phase D3) |
+
 ## Hosting notes
 
 - `vercel.json` serves `index.html` for unknown paths, long-caches hashed assets and sets the security headers from PRD §7 (strict CSP, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `X-Robots-Tag: noindex`).

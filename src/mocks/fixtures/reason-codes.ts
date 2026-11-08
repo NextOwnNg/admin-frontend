@@ -73,8 +73,16 @@ export const REASON_CODES: ReasonCode[] = [
     severity: null,
     kind: 'decision',
     appliesTo: ['case'],
+    caseKinds: ['appeal'],
   },
-  { code: 'NOT_A_DUPLICATE', label: 'Not a duplicate', severity: null, kind: 'decision', appliesTo: ['case'] },
+  {
+    code: 'NOT_A_DUPLICATE',
+    label: 'Not a duplicate',
+    severity: null,
+    kind: 'decision',
+    appliesTo: ['case'],
+    caseKinds: ['duplicate'],
+  },
   {
     code: 'BOTH_CONFIRMED',
     label: 'Both participants confirmed',

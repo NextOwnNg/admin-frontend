@@ -1,15 +1,21 @@
 import { Button } from '@heroui/react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { PageHead } from '@/components/seo/PageHead'
 import { Banner } from '@/components/ui/Banner'
+import { sessionQueryKey } from '@/features/auth/api/auth-api'
 import { useSignIn } from '@/features/auth/api/useSignIn'
+import { endSession } from '@/features/auth/api/useSignOut'
 import { CodeStep } from '@/features/auth/components/CodeStep'
 import { PhoneStep } from '@/features/auth/components/PhoneStep'
 import { SampleAccounts } from '@/features/auth/components/SampleAccounts'
+import { ApiError } from '@/lib/api/api-error'
+import type { StaffSession } from '@/lib/api/types/auth'
 import { errorMessage, fieldError } from '@/lib/api/error-message'
 import type { StaffRole } from '@/lib/copy/labels'
 import { useMockApi } from '@/lib/env'
 import { formatPhoneDisplay } from '@/lib/phone/phone'
+import { useSessionStore } from '@/stores/session'
 import { SAMPLE_CODE, SAMPLE_SECOND_FACTOR, STAFF_PHONES } from '@/mocks/sample-code'
 
 type Step = { kind: 'phone' } | { kind: 'code'; phone: string } | { kind: 'second-factor' }
@@ -22,6 +28,7 @@ export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAcco
   const [step, setStep] = useState<Step>({ kind: 'phone' })
   const [pageError, setPageError] = useState<unknown>(null)
   const { request, verify, secondFactor } = useSignIn()
+  const queryClient = useQueryClient()
 
   async function sendCode(phone: string) {
     setPageError(null)
@@ -35,10 +42,28 @@ export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAcco
     }
   }
 
+  /**
+   * Sign-in finished but the session holds no role the console knows (the store refuses it): say so, end the
+   * half-made server session and start again, instead of sitting on the code step. Only a session the server
+   * actually sent counts: a read that failed says so and keeps the session, which may well be valid.
+   */
+  function refuseUnlessStaff() {
+    if (useSessionStore.getState().status === 'staff') return
+    const read = queryClient.getQueryState<StaffSession | null>(sessionQueryKey)
+    if (read?.status === 'error' || !read?.data) {
+      setPageError(read?.error ?? new ApiError({ kind: 'network', code: 'NETWORK_ERROR', message: 'No session' }))
+      return
+    }
+    endSession(queryClient)
+    setStep({ kind: 'phone' })
+    setPageError(new ApiError({ kind: 'http', status: 403, code: 'NOT_STAFF', message: 'Not staff' }))
+  }
+
   async function verifyCode(phone: string, code: string) {
     setPageError(null)
     const { secondFactorRequired } = await verify.mutateAsync({ phone, code })
     if (secondFactorRequired) setStep({ kind: 'second-factor' })
+    else refuseUnlessStaff()
   }
 
   async function signInAsSample(role: StaffRole) {
@@ -48,6 +73,7 @@ export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAcco
       await request.mutateAsync(phone)
       const { secondFactorRequired } = await verify.mutateAsync({ phone, code: SAMPLE_CODE })
       if (secondFactorRequired) await secondFactor.mutateAsync(SAMPLE_SECOND_FACTOR)
+      refuseUnlessStaff()
     } catch (error) {
       setPageError(error)
     }
@@ -97,6 +123,7 @@ export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAcco
             onSubmit={async (code) => {
               setPageError(null)
               await secondFactor.mutateAsync(code)
+              refuseUnlessStaff()
             }}
             onPageError={setPageError}
           />

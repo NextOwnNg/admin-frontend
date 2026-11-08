@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { KeyValueList } from '@/components/data/KeyValueList'
+import { changeLines } from '@/features/settings/changes'
+import { SETTINGS_SECTIONS } from '@/features/settings/schemas'
+import type { SettingsSection } from '@/lib/api/types/settings'
 import { useReasonLabel } from '@/lib/api/reference'
 import type { AuditEntry as AuditEntryData } from '@/lib/api/types/audit'
 import { auditSentence } from '@/lib/copy/audit'
@@ -49,6 +52,15 @@ export function AuditEntry({ entry }: { entry: AuditEntryData }) {
 export function AuditChanges({ entry }: { entry: AuditEntryData }) {
   const [open, setOpen] = useState(false)
   const hasDetails = Boolean(entry.before || entry.after || entry.note)
+  // A settings change reads as old → new lines, the same as its confirmation, not as raw values
+  const section = entry.action === 'update_settings' ? (entry.target.id as SettingsSection) : null
+  const settingsLines =
+    section &&
+    SETTINGS_SECTIONS.includes(section) &&
+    entry.before?.[section] !== undefined &&
+    entry.after?.[section] !== undefined
+      ? changeLines(section, entry.before[section] as never, entry.after[section] as never)
+      : null
   return (
     <>
       {hasDetails && (
@@ -69,8 +81,18 @@ export function AuditChanges({ entry }: { entry: AuditEntryData }) {
                   {entry.note}
                 </p>
               )}
-              <Changes title="Before" values={entry.before} />
-              <Changes title="After" values={entry.after} />
+              {settingsLines ? (
+                <ul className="flex flex-col gap-1 text-compact text-ink">
+                  {settingsLines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <>
+                  <Changes title="Before" values={entry.before} />
+                  <Changes title="After" values={entry.after} />
+                </>
+              )}
             </div>
           )}
         </>

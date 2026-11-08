@@ -153,6 +153,32 @@ describe('record browsers (ADM-FE-07, Phase C design §4.1)', () => {
   })
 })
 
+describe('record lists (C1 review)', () => {
+  it('keeps the search box in step with the address on back and forward', async () => {
+    await signInAs('moderator')
+    const { router } = renderWithProviders(routes, { initialPath: '/records/users' })
+    await grid('Members')
+    const search = screen.getByRole('searchbox', { name: 'Search members by ID or name' })
+    await userEvent.type(search, 'kunle{Enter}')
+    await waitFor(() => expect(router.state.location.search).toContain('q=kunle'))
+    await router.navigate('/records/users?q=segun')
+    await waitFor(() => expect(search).toHaveValue('segun'))
+    await router.navigate(-1)
+    await waitFor(() => expect(search).toHaveValue('kunle'))
+  })
+
+  it.each([
+    ['users', 'Members', REC.chain.member],
+    ['items', 'Items', REC.chain.item],
+    ['listings', 'Listings', REC.chain.listing],
+  ] as const)('links the ID cell in %s', async (kind, name, id) => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: `/records/${kind}` })
+    const row = await rowWith(name, id)
+    expect(within(row!).getByRole('link', { name: id })).toHaveAttribute('href', `/records/${kind}/${id}`)
+  })
+})
+
 describe('record filters follow the pilot settings (Phase C design §4.5)', () => {
   it('keeps an area whose name has punctuation in the address (final review)', async () => {
     await signInAs('moderator')

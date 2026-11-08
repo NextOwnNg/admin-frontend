@@ -1,5 +1,5 @@
 const PROBE_ORIGIN = 'https://nextown.invalid'
-const SIGN_IN = /^\/sign-in(\/|$)/
+const SIGN_IN = /^\/sign-in(\/|$)/i
 
 /**
  * Where to go after signing in. Only a same-origin relative path is honoured (no open redirects); anything

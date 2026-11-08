@@ -12,10 +12,14 @@ import type {
 
 export const sessionQueryKey = ['admin', 'session'] as const
 
+/** The session check gives up sooner than other reads */
+export const SESSION_TIMEOUT_MS = 4_000
+
 /** The current staff session, or null when signed out (a 401 here is an answer, not an error). */
 export async function getSession({ signal }: { signal?: AbortSignal } = {}): Promise<StaffSession | null> {
   try {
-    const { data } = await apiClient.get<StaffSession>('/admin/session', { signal })
+    // A short timeout: a dead network should reach the retry state in seconds, not a minute (PRD §3.3)
+    const { data } = await apiClient.get<StaffSession>('/admin/session', { signal, timeout: SESSION_TIMEOUT_MS })
     return data
   } catch (error) {
     if (isSignedOut(error)) return null

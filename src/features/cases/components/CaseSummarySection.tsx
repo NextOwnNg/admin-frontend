@@ -67,7 +67,9 @@ export function CaseSummarySection({ caseDetail }: { caseDetail: CaseDetail }) {
         <div className="flex flex-col gap-2 border-t border-border pt-3">
           <h3 className="text-compact font-semibold text-ink">Appeal</h3>
           <p className="text-compact text-ink tabular-nums">
-            Restricted until {formatWAT(caseDetail.appeal.restrictedUntil)}
+            {caseDetail.appeal.liftedAt
+              ? `Restriction lifted ${formatWAT(caseDetail.appeal.liftedAt)}`
+              : `Restricted until ${formatWAT(caseDetail.appeal.restrictedUntil)}`}
           </p>
           <p className="text-compact text-muted">For: {reasonLabel(caseDetail.appeal.reasonCode)}</p>
           <blockquote className="rounded-small bg-cloud p-3 text-body whitespace-pre-wrap text-ink">

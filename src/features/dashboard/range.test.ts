@@ -10,6 +10,11 @@ describe('rangeError (Phase D design §4.4)', () => {
     expect(rangeError('2025-11-01', '2026-11-02')).toEqual({ field: 'to', message: RANGE_MESSAGES.tooLong })
   })
 
+  it('measures a range that starts before the pilot from the pilot start (D1 review)', () => {
+    expect(rangeError('2025-01-01', '2026-11-08', '2026-10-01')).toBeNull()
+    expect(rangeError('2025-01-01', '2026-11-08')).toEqual({ field: 'to', message: RANGE_MESSAGES.tooLong })
+  })
+
   it('accepts exactly 366 days and an open start', () => {
     expect(rangeError('2025-11-02', '2026-11-02')).toBeNull()
     expect(rangeError(undefined, '2026-11-02')).toBeNull()

@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { FilterBar, type FilterChip } from '@/components/data/FilterBar'
+import { formatDay } from '@/features/dashboard/format'
 import type { DashboardFilters as Filters, ResolvedRange } from '@/features/dashboard/schemas'
 import type { Area, Category } from '@/lib/api/types/settings'
 import { RANGE_PRESETS } from '@/lib/copy/dashboard'
@@ -34,6 +35,7 @@ export function DashboardFilters({
   filters,
   range,
   shown,
+  pilotStart,
   categories,
   areas,
   category,
@@ -46,6 +48,8 @@ export function DashboardFilters({
   range: ResolvedRange
   /** The range the figures on screen cover, which Custom starts from */
   shown?: { from: string; to: string }
+  /** Where a range with no start begins, for filling Custom */
+  pilotStart: string
   categories: Category[]
   areas: Area[]
   category?: string
@@ -58,7 +62,8 @@ export function DashboardFilters({
 
   const choosePreset = (value: string) => {
     if (value === 'custom') {
-      setFilters({ range: undefined, from: shown?.from ?? range.from, to: shown?.to ?? range.to })
+      // The figures on screen, once settled; while new ones load, the range just asked for
+      setFilters({ range: undefined, from: shown?.from ?? range.from ?? pilotStart, to: shown?.to ?? range.to })
     } else {
       // The default needs no parameter
       setFilters({ range: value === '30d' ? undefined : (value as Filters['range']), from: undefined, to: undefined })
@@ -72,7 +77,7 @@ export function DashboardFilters({
         label={label}
         error={
           invalid && (
-            <p id={errorId} className="max-w-56 text-caption text-danger">
+            <p id={errorId} role="alert" className="max-w-56 text-caption text-danger">
               {problem.message}
             </p>
           )
@@ -91,12 +96,20 @@ export function DashboardFilters({
   }
 
   const chips: FilterChip[] = []
-  if (filters.range) {
+  // Dates in the address make it Custom, so a preset left beside them means nothing
+  if (filters.range && range.preset !== 'custom') {
     chips.push({ key: 'range', label: RANGE_PRESETS[filters.range], onRemove: () => setFilters({ range: undefined }) })
   }
-  if (filters.from)
-    chips.push({ key: 'from', label: `From ${filters.from}`, onRemove: () => setFilters({ from: undefined }) })
-  if (filters.to) chips.push({ key: 'to', label: `To ${filters.to}`, onRemove: () => setFilters({ to: undefined }) })
+  if (filters.from) {
+    chips.push({
+      key: 'from',
+      label: `From ${formatDay(filters.from)}`,
+      onRemove: () => setFilters({ from: undefined }),
+    })
+  }
+  if (filters.to) {
+    chips.push({ key: 'to', label: `To ${formatDay(filters.to)}`, onRemove: () => setFilters({ to: undefined }) })
+  }
   const categoryName = categories.find((c) => c.id === category)?.name
   if (categoryName) {
     chips.push({
