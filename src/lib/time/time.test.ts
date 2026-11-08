@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { dueText, formatUTC, formatWAT, timeAgo, watDayEnd, watDayStart, withRelative } from '@/lib/time/time'
+import {
+  addDays,
+  daysBetween,
+  dueText,
+  formatUTC,
+  formatWAT,
+  timeAgo,
+  watDayEnd,
+  watDayStart,
+  watToday,
+  withRelative,
+} from '@/lib/time/time'
 
 const ISO = '2026-10-24T17:05:00Z'
 const at = (iso: string) => Date.parse(iso)
@@ -56,5 +67,19 @@ describe('WAT calendar days', () => {
   it('crosses month and year ends', () => {
     expect(watDayStart('2027-01-01')).toBe('2026-12-31T23:00:00.000Z')
     expect(watDayEnd('2026-12-31')).toBe('2026-12-31T22:59:59.999Z')
+  })
+})
+
+describe('WAT calendar days (Phase D dashboard)', () => {
+  it('reads today in WAT, which turns over at 23:00 UTC', () => {
+    expect(watToday(at('2026-11-07T23:30:00Z'))).toBe('2026-11-08')
+    expect(watToday(at('2026-11-07T22:30:00Z'))).toBe('2026-11-07')
+  })
+
+  it('moves by whole days and counts days inclusively', () => {
+    expect(addDays('2026-11-01', -29)).toBe('2026-10-03')
+    expect(addDays('2026-10-31', 1)).toBe('2026-11-01')
+    expect(daysBetween('2026-11-01', '2026-11-01')).toBe(1)
+    expect(daysBetween('2025-11-02', '2026-11-02')).toBe(366)
   })
 })

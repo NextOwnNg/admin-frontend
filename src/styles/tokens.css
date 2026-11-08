@@ -28,6 +28,13 @@
   --nx-danger: #b42318;
   --nx-info: #2453a6;
 
+  /* ── Chart series (dashboard only; never status, never text) ──
+     Categorical, in this fixed order. Checked with the dataviz validator on Paper:
+     chroma >= 0.10, colour-blind separation ΔE >= 14, every slot >= 3:1. */
+  --nx-chart-1: #00897b; /* teal */
+  --nx-chart-2: #7c4dbd; /* purple */
+  --nx-chart-3: #b65a0b; /* orange */
+
   /* ── Shape (Brand §5) ─────────────────────────────────────── */
   --nx-radius-sm: 8px;
   --nx-radius-control: 12px;

@@ -69,3 +69,20 @@ export function watDayStart(date: string): string {
 export function watDayEnd(date: string): string {
   return new Date(Date.parse(`${date}T00:00:00Z`) + 24 * HOUR - WAT_OFFSET_MS - 1).toISOString()
 }
+
+const DAY = 24 * HOUR
+
+/** Today's WAT calendar date, `"2026-11-08"`: what operators mean by "today". */
+export function watToday(nowMs: number): string {
+  return new Date(nowMs + WAT_OFFSET_MS).toISOString().slice(0, 10)
+}
+
+/** A calendar date `days` later (or earlier, when negative) */
+export function addDays(date: string, days: number): string {
+  return new Date(Date.parse(`${date}T00:00:00Z`) + days * DAY).toISOString().slice(0, 10)
+}
+
+/** Calendar days from `from` to `to`, counting both: the same day is 1 */
+export function daysBetween(from: string, to: string): number {
+  return Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY) + 1
+}

@@ -71,6 +71,16 @@ The top-bar search (press `/`) finds cases, transactions and records by ID or na
 
 Support agents see every exception but take a row with **Assign to me** before acting on it.
 
+### Dashboard
+
+| What | Where |
+| :-- | :-- |
+| Operations dashboard: funnel, rates by mode, liquidity, cancellations and disputes, support effort | `/dashboard` (administrator) |
+| A recent range, where longer liquidity windows read "Too recent" | `/dashboard?range=7d` |
+| One category, or an area with no activity (empty state) | `/dashboard?category=k-phones`, `/dashboard?area=a-ojota` |
+
+The mock's dashboard figures are **fictional and generated** from a fixed seed, one set of listings per day since the mock pilot start (1 October 2026). They don't match the sample records above. Every chart has a table (Chart / Table, remembered per user), and support minutes and cost per deal read "Not measured yet" until operations supplies those inputs.
+
 ## Hosting notes
 
 - `vercel.json` serves `index.html` for unknown paths, long-caches hashed assets and sets the security headers from PRD §7 (strict CSP, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `X-Robots-Tag: noindex`).
