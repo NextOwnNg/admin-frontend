@@ -1,6 +1,6 @@
 import { Button } from '@heroui/react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { lazy, Suspense, useState, type ComponentType } from 'react'
 import { PageHead } from '@/components/seo/PageHead'
 import { Banner } from '@/components/ui/Banner'
 import { sessionQueryKey } from '@/features/auth/api/auth-api'
@@ -8,15 +8,21 @@ import { useSignIn } from '@/features/auth/api/useSignIn'
 import { endSession } from '@/features/auth/api/useSignOut'
 import { CodeStep } from '@/features/auth/components/CodeStep'
 import { PhoneStep } from '@/features/auth/components/PhoneStep'
-import { SampleAccounts } from '@/features/auth/components/SampleAccounts'
+import type { SampleSignInProps } from '@/features/auth/components/SampleSignIn'
 import { ApiError } from '@/lib/api/api-error'
 import type { StaffSession } from '@/lib/api/types/auth'
 import { errorMessage, fieldError } from '@/lib/api/error-message'
-import type { StaffRole } from '@/lib/copy/labels'
-import { useMockApi } from '@/lib/env'
 import { formatPhoneDisplay } from '@/lib/phone/phone'
 import { useSessionStore } from '@/stores/session'
-import { SAMPLE_CODE, SAMPLE_SECOND_FACTOR, STAFF_PHONES } from '@/mocks/sample-code'
+
+/**
+ * The sample accounts load only while the mock API is on. The comparison is inline so the production build
+ * drops the module, with the sample phones and codes (design §7).
+ */
+const defaultSampleSignIn =
+  import.meta.env.VITE_USE_MOCK_API === 'true'
+    ? lazy(() => import('@/features/auth/components/SampleSignIn').then((m) => ({ default: m.SampleSignIn })))
+    : null
 
 type Step = { kind: 'phone' } | { kind: 'code'; phone: string } | { kind: 'second-factor' }
 
@@ -24,7 +30,11 @@ type Step = { kind: 'phone' } | { kind: 'code'; phone: string } | { kind: 'secon
  * Staff sign-in (PRD §3.5): phone, texted code, then a second code when the API asks for one. Once the
  * session starts, `RedirectIfStaff` moves on to `next`. Says nothing about what the console contains.
  */
-export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAccounts?: boolean }) {
+export function SignInPage({
+  sampleSignIn: SampleSignIn = defaultSampleSignIn,
+}: {
+  sampleSignIn?: ComponentType<SampleSignInProps> | null
+}) {
   const [step, setStep] = useState<Step>({ kind: 'phone' })
   const [pageError, setPageError] = useState<unknown>(null)
   const { request, verify, secondFactor } = useSignIn()
@@ -64,19 +74,6 @@ export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAcco
     const { secondFactorRequired } = await verify.mutateAsync({ phone, code })
     if (secondFactorRequired) setStep({ kind: 'second-factor' })
     else refuseUnlessStaff()
-  }
-
-  async function signInAsSample(role: StaffRole) {
-    setPageError(null)
-    try {
-      const phone = STAFF_PHONES[role]
-      await request.mutateAsync(phone)
-      const { secondFactorRequired } = await verify.mutateAsync({ phone, code: SAMPLE_CODE })
-      if (secondFactorRequired) await secondFactor.mutateAsync(SAMPLE_SECOND_FACTOR)
-      refuseUnlessStaff()
-    } catch (error) {
-      setPageError(error)
-    }
   }
 
   return (
@@ -129,7 +126,18 @@ export function SignInPage({ showSampleAccounts = useMockApi }: { showSampleAcco
           />
         )}
 
-        {showSampleAccounts && step.kind === 'phone' && <SampleAccounts onSignIn={signInAsSample} />}
+        {SampleSignIn && step.kind === 'phone' && (
+          <Suspense fallback={null}>
+            <SampleSignIn
+              request={request}
+              verify={verify}
+              secondFactor={secondFactor}
+              onStart={() => setPageError(null)}
+              onSignedIn={refuseUnlessStaff}
+              onError={setPageError}
+            />
+          </Suspense>
+        )}
       </div>
     </>
   )

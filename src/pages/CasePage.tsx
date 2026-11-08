@@ -61,7 +61,7 @@ export function CasePage() {
             <CaseHeader caseDetail={caseDetail} />
           </div>
           {recorded && (
-            <Banner tone="success" title="Recorded">
+            <Banner key={recorded.id} tone="success" title="Recorded" focusOnShow>
               <AuditEntry entry={recorded} />
             </Banner>
           )}

@@ -10,7 +10,7 @@ describe('Overview (design §4.1)', () => {
     await signInAs('moderator')
     const { container } = renderWithProviders(routes, { initialPath: '/' })
 
-    const s1 = await screen.findByRole('link', { name: /^S1 Urgent safety: \d+ open$/ })
+    const s1 = await screen.findByRole('link', { name: /^S1 Urgent safety \d+ open$/ })
     expect(s1).toHaveAttribute('href', '/reports?severity=S1')
     expect(screen.getByRole('link', { name: /^S4 Help/ })).toHaveAttribute('href', '/reports?severity=S4')
     expect(await screen.findByRole('grid', { name: 'My cases' })).toBeInTheDocument()
@@ -21,7 +21,7 @@ describe('Overview (design §4.1)', () => {
     await signInAs('support_agent')
     renderWithProviders(routes, { initialPath: '/' })
 
-    expect(await screen.findByRole('link', { name: 'S1 Urgent safety: 0 open' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'S1 Urgent safety 0 open' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'View all my cases' })).toHaveAttribute('href', '/reports?assignee=me')
     const rows = within(await screen.findByRole('grid', { name: 'My cases' }))
       .getAllByRole('row')

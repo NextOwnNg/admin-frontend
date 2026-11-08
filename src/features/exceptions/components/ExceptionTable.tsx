@@ -51,6 +51,7 @@ export function ExceptionTable({
         {
           id: 'record',
           header: 'Record',
+          rowHeader: true,
           cell: (r) => (
             <span className="flex flex-col gap-0.5 whitespace-nowrap">
               {canOpenCase(r) ? (

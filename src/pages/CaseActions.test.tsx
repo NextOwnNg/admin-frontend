@@ -46,6 +46,8 @@ describe('case actions (ADM-FE-05)', () => {
     const recorded = await screen.findByRole('status', { name: 'Recorded' })
     expect(recorded).toHaveTextContent('Tunde Bakare hid comment C-5501')
     expect(recorded).toHaveTextContent('Abusive language')
+    // The button that opened the dialog is gone: focus goes to what happened, not to the page body (D3 flows)
+    await waitFor(() => expect(recorded).toHaveFocus())
     expect(await screen.findByText('Content hidden by moderation')).toBeInTheDocument()
     expect(screen.queryByText(/Useless seller/)).not.toBeInTheDocument()
   })

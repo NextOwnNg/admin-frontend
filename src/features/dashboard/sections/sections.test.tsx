@@ -51,6 +51,21 @@ describe('funnel (Phase D design §4.2)', () => {
   })
 })
 
+describe('figure tables and the keyboard (D3 accessibility sweep)', () => {
+  it('lets the keyboard scroll a table on screen, named for the table', async () => {
+    show(<FunnelSection data={sampleDashboard()} />)
+    await userEvent.click(screen.getByRole('button', { name: 'Table' }))
+    expect(screen.getByRole('group', { name: 'Listing to completion' })).toHaveAttribute('tabindex', '0')
+  })
+
+  it('adds no hidden stop for the table kept for screen readers in chart view', () => {
+    const { container } = show(<FunnelSection data={sampleDashboard()} />)
+    expect(screen.getByRole('table', { name: 'Listing to completion' })).toBeInTheDocument()
+    expect(container.querySelector('.sr-only [tabindex]')).toBeNull()
+    expect(container.querySelector('.sr-only .overflow-x-auto')).toBeNull()
+  })
+})
+
 describe('rates by mode (Phase D design §4.2)', () => {
   it('shows acceptance, completion, time and the incomplete share per mode, all modes first', () => {
     const data = sampleDashboard()

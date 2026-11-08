@@ -6,8 +6,8 @@ export type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger'
 const tones: Record<StatusTone, string> = {
   neutral: 'bg-cloud text-muted ring-1 ring-border',
   info: 'bg-info/10 text-info',
-  success: 'bg-success/10 text-success',
-  warning: 'bg-warning/10 text-warning',
+  success: 'bg-success/10 text-success-strong',
+  warning: 'bg-warning/10 text-warning-strong',
   danger: 'bg-danger/10 text-danger',
 }
 

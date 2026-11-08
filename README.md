@@ -3,6 +3,7 @@
 The staff-only console that support agents, moderators and administrators use to run the NextOwn one-city pilot. It lives in its own repository, separate from the marketplace app (`client-frontend`), and shares no code with it at build time.
 
 - Requirements: [docs/admin-prd.md](docs/admin-prd.md) (NX-ADM-PRD-001)
+- Operator walkthrough for the PRD §15 moderation gate: [docs/operator-walkthrough.md](docs/operator-walkthrough.md)
 - Brand: [docs/NextOwn Brand Kit and Design System.md](docs/NextOwn%20Brand%20Kit%20and%20Design%20System.md). Tokens in `src/styles/tokens.css` implement **Brand Kit v0.9**; any Brand Kit change must be applied to both frontend repositories.
 
 ## Getting started
@@ -17,9 +18,12 @@ npm run dev        # http://localhost:5173, runs on the in-browser mock admin AP
 | `npm run dev` | Vite dev server |
 | `npm run build` | Typecheck and production build into `dist/` |
 | `npm run test` / `test:run` | Vitest in watch mode / once |
+| `npm run test:flow` | Browser flows and the accessibility sweep in Chromium (run `npx playwright install chromium` once) |
 | `npm run lint` | oxlint, then ESLint (type-aware, React Hooks, jsx-a11y) |
 | `npm run format` | Prettier |
-| `npm run check` | Typecheck, lint, format check and all tests (what CI runs) |
+| `npm run check` | Typecheck, lint, format check and all jsdom tests |
+| `npm run check:dist` | Fails if a build in `dist/` (or the folder given) carries any mock code: the MSW worker, MSW, or the sample accounts |
+| `npm run check:bundle` | Fails if the initial JS in `dist/` is over 300 kB gzipped |
 
 ## Environment
 
@@ -30,6 +34,10 @@ npm run dev        # http://localhost:5173, runs on the in-browser mock admin AP
 | `VITE_ENV_NAME` | `local`, `preview`, `staging` or `production`. Every value except `production` shows the environment ribbon |
 
 Nothing secret goes in `VITE_*` variables: they ship in the browser bundle.
+
+`VITE_BUILD_VERSION` is set by `vite.config.ts` (the Vercel commit, else the package version) and names the build in client error reports. Don't set it by hand.
+
+A build with `VITE_ENV_NAME=production` and `VITE_USE_MOCK_API=true` fails on purpose. Production never serves fictional data.
 
 ## Mock accounts
 
@@ -94,9 +102,11 @@ The mock answers these one way. The real API may choose differently; each is a s
 | A revealed phone number | The revealed value stays in memory only while its section is on screen. The mock logs a retried reveal twice |
 | Exceptions for support agents | Every agent sees every exception and takes unassigned ones for themselves. The real API may scope rows per agent |
 | Dashboard attribution | Every event counts toward the day its listing was published (a cohort view). Completion counts deals accepted at least 7 days before the data-through time. The pilot start comes from the API (`pilotStart`) |
-| Client error reports | Not built yet (Phase D3) |
+| Client error reports | `POST /admin/client-errors` with the error name, a scrubbed message (no addresses, emails or long numbers, 200 characters at most), the route pattern (`/cases/:id`), the request ID, build version and environment. At most 10 a minute. The mock accepts reports from anyone, signed in or not |
 
 ## Hosting notes
 
-- `vercel.json` serves `index.html` for unknown paths, long-caches hashed assets and sets the security headers from PRD §7 (strict CSP, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `X-Robots-Tag: noindex`).
+- `vercel.json` serves `index.html` for unknown paths, long-caches hashed assets and sets the security headers from PRD §7 (strict CSP, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, `nosniff`, `X-Robots-Tag: noindex`, and a `Permissions-Policy` that turns off camera, microphone, geolocation, payment and USB).
+- **Production builds carry no mock.** The sample accounts and the MSW worker load only when `VITE_USE_MOCK_API=true`, and a build without the mock leaves `mockServiceWorker.js` out. CI builds for production, then runs `check:dist` and `check:bundle`.
+- **Client errors** are posted to `POST /admin/client-errors` on the API origin, so they need no CSP change beyond the API origin itself.
 - The CSP's `connect-src` is `'self'` only, because the API is same-origin `/api` for now. When the real admin API origin is decided (AD-D-01), add it to `connect-src` and either a rewrite in `vercel.json` or an absolute `VITE_ADMIN_API_BASE_URL`.

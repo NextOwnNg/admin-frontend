@@ -57,6 +57,13 @@ describe('exceptions (ADM-FE-08, Phase C design §4.4)', () => {
     expect(outcomes.join()).not.toMatch(/Completed/)
   })
 
+  it('names each row by its record, not its priority (accessibility sweep)', async () => {
+    await signInAs('administrator')
+    renderWithProviders(routes, { initialPath: '/exceptions?queue=dispute' })
+    const table = await grid('Open disputes')
+    expect(within(table).getByRole('row', { name: new RegExp(SCENARIO.disputedCancellation) })).toBeInTheDocument()
+  })
+
   it('asks a support agent to take an unassigned row before acting on it', async () => {
     await signInAs('support_agent')
     renderWithProviders(routes, { initialPath: '/exceptions?queue=appeal' })

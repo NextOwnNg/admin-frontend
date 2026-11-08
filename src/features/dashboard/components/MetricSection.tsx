@@ -3,6 +3,7 @@ import { Section } from '@/components/ui/Section'
 import { cx } from '@/lib/cx'
 import type { DashboardSectionId } from '@/lib/copy/dashboard'
 import { useUiStore, type ChartView } from '@/stores/ui'
+import { ScreenReaderOnlyTable } from '@/features/dashboard/components/table-context'
 
 const VIEWS: { view: ChartView; label: string }[] = [
   { view: 'chart', label: 'Chart' },
@@ -65,7 +66,9 @@ export function MetricSection({
         <>
           <p className="text-caption text-muted">The same figures are in the table view.</p>
           <div aria-hidden>{chart}</div>
-          <div className="sr-only">{table}</div>
+          <div className="sr-only">
+            <ScreenReaderOnlyTable value={true}>{table}</ScreenReaderOnlyTable>
+          </div>
         </>
       ) : (
         table

@@ -27,6 +27,10 @@
   --nx-warning: #9a5900;
   --nx-danger: #b42318;
   --nx-info: #2453a6;
+  /* Status text on its own 10% tint (badges): Success and Warning fall under 4.5:1 there on Cloud and Mint.
+     These keep at least 5.1:1 (checked in the D3 browser accessibility sweep). */
+  --nx-success-strong: #0f6a45;
+  --nx-warning-strong: #7d4800;
 
   /* ── Chart series (dashboard only; never status, never text) ──
      Categorical, in this fixed order. Checked with the dataviz validator on Paper:

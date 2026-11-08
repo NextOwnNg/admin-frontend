@@ -38,6 +38,12 @@ describe('Reports queue (UX-27, ADM-FE-02)', () => {
     await expectNoA11yViolations(container)
   })
 
+  it('names each row by its case, not its severity (accessibility sweep)', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/reports' })
+    expect(await screen.findByRole('row', { name: new RegExp(SCENARIO.abusiveComment) })).toBeInTheDocument()
+  })
+
   it('filters by severity through the address, and removes the filter', async () => {
     await signInAs('moderator')
     const { router } = renderWithProviders(routes, { initialPath: '/reports' })

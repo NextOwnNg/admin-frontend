@@ -24,6 +24,7 @@ export function MyCasesTable({
     {
       id: 'case',
       header: 'Case',
+      rowHeader: true,
       cell: (c) => (
         <span className="flex flex-col">
           <Link

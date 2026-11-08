@@ -4,18 +4,21 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { RedirectIfStaff } from '@/app/guards/RedirectIfStaff'
 import { RequireStaff } from '@/app/guards/RequireStaff'
+import { SampleSignIn } from '@/features/auth/components/SampleSignIn'
 import { SAMPLE_CODE, SAMPLE_SECOND_FACTOR } from '@/mocks/sample-code'
 import { SignInPage } from '@/pages/SignInPage'
 import { expectNoA11yViolations } from '@/test/axe'
 import { server } from '@/test/msw/server'
 import { renderWithProviders } from '@/test/utils'
 
-function renderSignIn({ sampleAccounts = false } = {}) {
+function renderSignIn({ sampleAccounts = false }: { sampleAccounts?: boolean | 'default' } = {}) {
+  const page =
+    sampleAccounts === 'default' ? <SignInPage /> : <SignInPage sampleSignIn={sampleAccounts ? SampleSignIn : null} />
   return renderWithProviders(
     [
       {
         element: <RedirectIfStaff />,
-        children: [{ path: '/sign-in', element: <SignInPage showSampleAccounts={sampleAccounts} /> }],
+        children: [{ path: '/sign-in', element: page }],
       },
       { element: <RequireStaff />, children: [{ path: '/reports', element: <h1>Reports queue</h1> }] },
     ],
@@ -127,6 +130,12 @@ describe('SignInPage', () => {
     renderSignIn()
     await screen.findByRole('heading', { name: 'Sign in to NextOwn Admin' })
     expect(screen.queryByRole('button', { name: 'Sign in as moderator' })).not.toBeInTheDocument()
+  })
+
+  it('shows no sample accounts by default outside the mock', async () => {
+    renderSignIn({ sampleAccounts: 'default' })
+    await screen.findByRole('heading', { name: 'Sign in to NextOwn Admin' })
+    expect(screen.queryByRole('heading', { name: 'Sample staff accounts' })).not.toBeInTheDocument()
   })
 
   it('signs in with one click as a sample account on the mock API', async () => {

@@ -28,7 +28,7 @@ const routes = [
         children: [
           {
             element: <AuthLayout />,
-            children: [{ path: '/sign-in', element: <SignInPage showSampleAccounts={false} /> }],
+            children: [{ path: '/sign-in', element: <SignInPage sampleSignIn={null} /> }],
           },
         ],
       },
