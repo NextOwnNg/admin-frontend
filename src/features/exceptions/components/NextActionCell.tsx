@@ -25,11 +25,11 @@ export function NextActionCell({
         <p className="text-compact text-ink">{heldBy} has this</p>
       ) : mustAssign ? (
         <PlainButton size="compact" variant="secondary" disabled={pending} onClick={onAssign}>
-          Assign to me
+          Assign to me <span className="sr-only">for {row.caseId}</span>
         </PlainButton>
       ) : (
         <ButtonLink to={row.nextAction.href} size="compact" className="whitespace-nowrap">
-          {row.nextAction.label}
+          {row.nextAction.label} <span className="sr-only">for {row.caseId}</span>
         </ButtonLink>
       )}
       {row.nextAction.note && <p className="text-caption text-muted">{row.nextAction.note}</p>}

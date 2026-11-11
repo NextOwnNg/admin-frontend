@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getSession, sessionQueryKey } from '@/features/auth/api/auth-api'
 import { endSession } from '@/features/auth/api/useSignOut'
 import { setCsrfToken } from '@/lib/api/client'
+import { isRetryable } from '@/lib/api/error-checks'
 import { applySession, useSessionStore } from '@/stores/session'
 
 /**
@@ -20,5 +21,8 @@ export function useSession() {
       setCsrfToken(session?.csrfToken ?? null)
       return session
     },
+    // One retry, network or 5xx only: with the 4 s timeout, a dead network shows the retry state within ~9 s
+    retry: (failureCount, error) => failureCount < 1 && isRetryable(error),
+    retryDelay: 1_000,
   })
 }

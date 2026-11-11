@@ -3,6 +3,7 @@ import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { reseed } from '@/mocks/db/store'
 import { staffDb } from '@/mocks/db/staff'
+import { clientErrorsDb } from '@/mocks/handlers/client-errors'
 import { useSessionStore } from '@/stores/session'
 import { useTablePrefs } from '@/stores/tablePrefs'
 import { useUiStore } from '@/stores/ui'
@@ -35,6 +36,7 @@ beforeAll(() => server.listen({ onUnhandledFrame: 'error' }))
 afterEach(() => {
   server.resetHandlers()
   staffDb.reset()
+  clientErrorsDb.reset()
   reseed()
   // Client stores outlive a render; every test starts with no session check and default preferences
   useSessionStore.setState(useSessionStore.getInitialState())

@@ -263,7 +263,13 @@ function ActionForm({
   const outcomeOptions =
     context.kind === 'transaction'
       ? context.tx.allowedOutcomes.map((o) => ({ value: o, label: TRANSACTION_OUTCOME[o] }))
-      : closeOutcomesFor(context.caseDetail.kind).map(([value, label]) => ({ value, label }))
+      : // A support agent proposes what should happen to the transaction behind a transaction case
+        definition.id === 'propose' && context.caseDetail.transactionId
+        ? (Object.entries(TRANSACTION_OUTCOME) as [TransactionOutcome, string][]).map(([value, label]) => ({
+            value,
+            label,
+          }))
+        : closeOutcomesFor(context.caseDetail.kind).map(([value, label]) => ({ value, label }))
   const completionWithheld = context.kind === 'transaction' && !context.tx.allowedOutcomes.includes('completed')
   const itemOptions =
     context.kind === 'transaction'
@@ -351,6 +357,7 @@ function ActionForm({
           <ReasonCodeField
             kind={reasonKind}
             targetType={target.type}
+            caseKind={context.kind === 'case' ? context.caseDetail.kind : undefined}
             error={errors.reasonCode?.message}
             {...register('reasonCode')}
           />

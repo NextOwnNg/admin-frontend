@@ -1,5 +1,5 @@
 import { CircleAlert, CircleCheck, Info, TriangleAlert, type LucideIcon } from 'lucide-react'
-import { useId, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { cx } from '@/lib/cx'
 
 export type BannerTone = 'info' | 'success' | 'warning' | 'error'
@@ -19,17 +19,28 @@ export function Banner({
   children,
   action,
   className,
+  focusOnShow = false,
 }: {
   tone: BannerTone
   title: string
   children?: ReactNode
   action?: ReactNode
   className?: string
+  /** Takes focus when it appears: for the outcome of an action whose button is gone (PRD §9, keyboard flows) */
+  focusOnShow?: boolean
 }) {
   const { className: toneClass, icon: Icon, iconClass, role } = tones[tone]
   const titleId = useId()
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (focusOnShow) ref.current?.focus()
+  }, [focusOnShow])
+
   return (
     <div
+      ref={ref}
+      tabIndex={focusOnShow ? -1 : undefined}
       role={role}
       aria-labelledby={titleId}
       className={cx('flex gap-3 rounded-control p-4 text-ink', toneClass, className)}

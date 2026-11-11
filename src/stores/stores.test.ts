@@ -86,3 +86,23 @@ describe('preference stores survive broken storage', () => {
     expect(useTablePrefs.getState().prefs).toEqual({ reports: { hiddenColumns: ['age'], density: 'compact' } })
   })
 })
+
+describe('dashboard chart views (Phase D design §4.3)', () => {
+  it('remembers chart or table per section', () => {
+    useUiStore.getState().setChartView('funnel', 'table')
+    expect(useUiStore.getState().chartViews).toEqual({ funnel: 'table' })
+  })
+
+  it('drops stored views it does not know', async () => {
+    localStorage.setItem(
+      'nextown-admin-ui',
+      JSON.stringify({
+        state: { sidebarCollapsed: true, chartViews: { funnel: 'pie', modes: 'table', nope: 'chart' } },
+        version: 1,
+      }),
+    )
+    await useUiStore.persist.rehydrate()
+    expect(useUiStore.getState().chartViews).toEqual({ modes: 'table' })
+    expect(useUiStore.getState().sidebarCollapsed).toBe(true)
+  })
+})

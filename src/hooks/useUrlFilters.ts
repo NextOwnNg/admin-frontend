@@ -44,16 +44,18 @@ export function useUrlFilters<S extends Shape>(schema: S) {
     return { filters: filters as Out, present: present as Partial<Out> }
   }, [params, schema])
 
-  const setFilter = useCallback(
-    <K extends Extract<keyof Out, string>>(key: K, value: Out[K] | undefined) => {
+  /** Several filters in one address change; `undefined` removes one. A new filter starts from the first page. */
+  const setFilters = useCallback(
+    (patch: { [K in Extract<keyof Out, string>]?: Out[K] | undefined }) => {
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev)
-          const text = Array.isArray(value) ? value.join(',') : value === undefined ? '' : String(value)
-          if (text) next.set(key, text)
-          else next.delete(key)
-          // A new filter starts from the first page
-          if (key !== 'cursor') next.delete('cursor')
+          for (const [key, value] of Object.entries(patch)) {
+            const text = Array.isArray(value) ? value.join(',') : value === undefined ? '' : String(value)
+            if (text) next.set(key, text)
+            else next.delete(key)
+          }
+          if (!Object.keys(patch).every((key) => key === 'cursor')) next.delete('cursor')
           return next
         },
         { replace: true },
@@ -62,7 +64,13 @@ export function useUrlFilters<S extends Shape>(schema: S) {
     [setParams],
   )
 
+  const setFilter = useCallback(
+    <K extends Extract<keyof Out, string>>(key: K, value: Out[K] | undefined) =>
+      setFilters({ [key]: value } as { [P in Extract<keyof Out, string>]?: Out[P] }),
+    [setFilters],
+  )
+
   const clear = useCallback(() => setParams(new URLSearchParams(), { replace: true }), [setParams])
 
-  return { filters, present, setFilter, clear }
+  return { filters, present, setFilter, setFilters, clear }
 }

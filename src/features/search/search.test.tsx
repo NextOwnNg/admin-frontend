@@ -67,7 +67,7 @@ describe('global search (Phase C design §4.3)', () => {
     await signInAs('support_agent')
     const { router } = await shell()
     await userEvent.type(await box(), SCENARIO.s1Unassigned)
-    expect(await screen.findByText(`No matches for "${SCENARIO.s1Unassigned}"`)).toBeInTheDocument()
+    expect(await within(await listbox()).findByText(`No matches for "${SCENARIO.s1Unassigned}"`)).toBeInTheDocument()
     await userEvent.keyboard('{Enter}')
     expect(router.state.location.pathname).toBe('/')
 
@@ -79,7 +79,7 @@ describe('global search (Phase C design §4.3)', () => {
 
     await userEvent.clear(await box())
     await userEvent.type(await box(), 'segun')
-    expect(await screen.findByText('No matches for "segun"')).toBeInTheDocument()
+    expect(await within(await listbox()).findByText('No matches for "segun"')).toBeInTheDocument()
   })
 
   it('sends nothing for blank or one-letter input (Review Focus 2)', async () => {
@@ -119,7 +119,7 @@ describe('global search (Phase C design §4.3)', () => {
     )
     await shell()
     await userEvent.type(await box(), 'segun')
-    expect(await screen.findByText("Search isn't available right now. Try again.")).toBeInTheDocument()
+    expect(await within(await listbox()).findByText("Search isn't available right now. Try again.")).toBeInTheDocument()
   })
 
   it('focuses on "/" unless someone is typing elsewhere', async () => {
@@ -133,6 +133,58 @@ describe('global search (Phase C design §4.3)', () => {
     await userEvent.keyboard('a/b')
     expect(note).toHaveValue('a/b')
     expect(await box()).not.toHaveFocus()
+  })
+
+  it('lists an exact ID match first, in the first group (C1 review)', async () => {
+    await signInAs('moderator')
+    const exact = { kind: 'transactions' as const, id: 'T-000301', label: 'T-000301', href: '/transactions/T-000301' }
+    server.use(
+      http.get(`${apiBaseUrl}/admin/search`, () =>
+        HttpResponse.json({
+          exact,
+          groups: [
+            {
+              kind: 'users',
+              results: [{ kind: 'users', id: 'u-t3', label: 'T3 Gadgets', href: '/records/users/u-t3' }],
+            },
+            {
+              kind: 'transactions',
+              results: [
+                { kind: 'transactions', id: 'T-0003010', label: 'T-0003010', href: '/transactions/T-0003010' },
+                exact,
+              ],
+            },
+          ],
+        }),
+      ),
+    )
+    await shell()
+    await userEvent.type(await box(), 'T-000301')
+    const groups = await within(await listbox()).findAllByRole('group')
+    expect(groups[0]).toHaveAccessibleName('Transactions')
+    expect(within(groups[0]!).getAllByRole('option')[0]).toHaveTextContent('T-000301')
+    expect(within(groups[0]!).getAllByRole('option')[0]).not.toHaveTextContent('T-0003010')
+  })
+
+  it('announces searching, no matches and the number of results (C1 review)', async () => {
+    await signInAs('moderator')
+    await shell()
+    const status = screen.getByTestId('search-status')
+    expect(status).toHaveAttribute('role', 'status')
+    expect(status).toHaveTextContent('')
+    await userEvent.type(await box(), 'zzzz')
+    await waitFor(() => expect(status).toHaveTextContent('No matches for "zzzz"'))
+    await userEvent.clear(await box())
+    await userEvent.type(await box(), 'segun')
+    await waitFor(() => expect(status).toHaveTextContent(/^\d+ results?$/))
+  })
+
+  it('shows search from tablet width, not only desktop (C1 review)', async () => {
+    await signInAs('moderator')
+    await shell()
+    const wrapper = (await box()).closest('[data-search-wrapper]')
+    expect(wrapper).toHaveClass('tablet:block')
+    expect(wrapper).not.toHaveClass('desktop:block')
   })
 
   it('has no accessibility problems with results open', async () => {

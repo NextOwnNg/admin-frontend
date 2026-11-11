@@ -65,6 +65,7 @@ export function Sidebar() {
           type="button"
           onClick={toggle}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-expanded={!collapsed}
           className={cx(
             'flex h-11 w-full items-center gap-3 rounded-control px-3 text-compact text-mint/80 hover:bg-paper/5 hover:text-paper',
             collapsed && 'justify-center px-0',

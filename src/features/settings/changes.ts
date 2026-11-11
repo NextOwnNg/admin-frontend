@@ -118,3 +118,23 @@ export function sectionSummary<S extends SettingsSection>(section: S, value: Pil
   }
   return []
 }
+
+/**
+ * A server field path in words: `value.0.areas.9.name` on cities and areas is "Area 10 in Lagos". A path it
+ * can't name is shown as it came, so no error is ever hidden.
+ */
+export function fieldName(section: SettingsSection, path: string, value: unknown): string {
+  const parts = path.split('.')
+  if (parts[0] !== 'value') return path
+  const index = (at: number) => Number(parts[at])
+  if (section === 'locations' && parts.length >= 3 && Number.isInteger(index(1))) {
+    const city = (value as City[])[index(1)]?.name || `city ${index(1) + 1}`
+    if (parts[2] === 'name' && parts.length === 3) return `City ${index(1) + 1} name`
+    if (parts[2] === 'areas' && Number.isInteger(index(3))) return `Area ${index(3) + 1} in ${city}`
+  }
+  if (section === 'categories' && Number.isInteger(index(1))) return `Category ${index(1) + 1}`
+  if (section === 'contentRules' && parts[1] === 'prohibitedItems' && Number.isInteger(index(2))) {
+    return `Prohibited item ${index(2) + 1}`
+  }
+  return path
+}

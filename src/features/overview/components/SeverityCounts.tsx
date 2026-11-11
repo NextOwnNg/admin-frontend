@@ -15,7 +15,6 @@ export function SeverityCounts({ counts }: { counts: Overview['openBySeverity'] 
           <li key={s}>
             <Link
               to={`/reports?severity=${s}`}
-              aria-label={`${label}: ${counts[s]} open`}
               className={cx(
                 'flex flex-col gap-2 rounded-card border p-5 transition-colors hover:bg-cloud',
                 urgent ? 'border-danger/40 bg-danger/5' : 'border-border bg-paper',
@@ -29,8 +28,11 @@ export function SeverityCounts({ counts }: { counts: Overview['openBySeverity'] 
               >
                 <Icon aria-hidden className="size-4" />
                 {label}
+              </span>{' '}
+              {/* The name starts with what's on screen, so voice control users can say it (WCAG 2.5.3) */}
+              <span className="text-h2 text-ink tabular-nums">
+                {counts[s]} <span className="sr-only">open</span>
               </span>
-              <span className="text-h2 text-ink tabular-nums">{counts[s]}</span>
             </Link>
           </li>
         )

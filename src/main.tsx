@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App } from '@/app/App'
-import { useMockApi } from '@/lib/env'
+import { installGlobalErrorReporting } from '@/lib/observability/report-error'
 import '@/styles/index.css'
 
 /**
@@ -9,10 +9,13 @@ import '@/styles/index.css'
  * VITE_USE_MOCK_API=true: locally, and on preview deployments.
  */
 async function startMockApi() {
-  if (!useMockApi) return
+  // Inline, not `useMockApi`, so a build without the mock drops the MSW chunk entirely
+  if (import.meta.env.VITE_USE_MOCK_API !== 'true') return
   const { worker } = await import('@/mocks/browser')
   await worker.start({ onUnhandledFrame: 'bypass', quiet: true })
 }
+
+installGlobalErrorReporting()
 
 const root = document.getElementById('root')
 if (!root) throw new Error('Root element #root not found')

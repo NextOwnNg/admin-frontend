@@ -28,7 +28,7 @@ const routes = [
         children: [
           {
             element: <AuthLayout />,
-            children: [{ path: '/sign-in', element: <SignInPage showSampleAccounts={false} /> }],
+            children: [{ path: '/sign-in', element: <SignInPage sampleSignIn={null} /> }],
           },
         ],
       },
@@ -70,10 +70,22 @@ describe('AdminLayout', () => {
     renderWithProviders(routes, { initialPath: '/' })
     await screen.findByRole('heading', { name: 'Overview page' })
 
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toHaveAttribute('aria-expanded', 'true')
     await userEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
 
-    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.getByRole('link', { name: 'Listings' })).toBeInTheDocument()
+  })
+
+  it('lets the skip link move focus into the page (Phase A review)', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/' })
+    await screen.findByRole('heading', { name: 'Overview page' })
+    expect(screen.getByRole('link', { name: 'Skip to content' })).toHaveAttribute('href', '#main')
+    const main = screen.getByRole('main')
+    expect(main).toHaveAttribute('tabindex', '-1')
+    main.focus()
+    expect(main).toHaveFocus()
   })
 
   it('shows breadcrumbs and the environment ribbon', async () => {

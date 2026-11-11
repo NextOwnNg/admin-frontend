@@ -38,11 +38,14 @@ const name = z
   .max(60, { error: 'Use 2 to 60 characters.' })
 const place = z.object({ id: z.string().min(1), name, active: z.boolean() })
 
+/** How names compare: case, outer spaces and runs of inner spaces don't make two names different */
+export const normName = (value: string) => value.trim().replace(/\s+/g, ' ').toLowerCase()
+
 /** Names unique within their list, ignoring case and spaces */
 function uniqueNames(rows: { name: string }[], ctx: z.RefinementCtx, path: (string | number)[]) {
   const seen = new Set<string>()
   rows.forEach((row, index) => {
-    const key = row.name.trim().toLowerCase()
+    const key = normName(row.name)
     if (seen.has(key)) {
       ctx.addIssue({
         code: 'custom',
@@ -76,13 +79,23 @@ const photoLimits = z.object({ min: photoCount, max: photoCount }).refine((v) =>
 })
 
 const contentRules = z.object({
-  prohibitedItems: z.array(
-    z
-      .string()
-      .trim()
-      .min(2, { error: 'Each item needs 2 to 80 characters.' })
-      .max(80, { error: 'Each item needs 2 to 80 characters.' }),
-  ),
+  prohibitedItems: z
+    .array(
+      z
+        .string()
+        .trim()
+        .min(2, { error: 'Each item needs 2 to 80 characters.' })
+        .max(80, { error: 'Each item needs 2 to 80 characters.' }),
+    )
+    .superRefine((items, ctx) => {
+      const seen = new Set<string>()
+      items.forEach((item, index) => {
+        if (seen.has(normName(item))) {
+          ctx.addIssue({ code: 'custom', message: `${item.trim()} is already in the list.`, path: [index] })
+        }
+        seen.add(normName(item))
+      })
+    }),
   rulesUrl: z
     .string()
     .trim()
@@ -97,7 +110,10 @@ const supportContacts = z.object({
     .pipe(
       z.string().regex(/^(\+234|0)[789][01]\d{8}$/, { error: 'Enter a Nigerian phone number, like 0803 123 4567.' }),
     ),
-  email: z.email({ error: 'Enter a valid email address.' }),
+  email: z
+    .string()
+    .trim()
+    .pipe(z.email({ error: 'Enter a valid email address.' })),
   hours: z
     .string()
     .trim()

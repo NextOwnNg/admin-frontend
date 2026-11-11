@@ -43,7 +43,13 @@ export type CaseSummary = {
 export type CaseKind = 'report' | 'appeal' | 'duplicate'
 
 /** The restriction a member is appealing, and what they said */
-export type AppealInfo = { restrictedUntil: string; reasonCode: string; statement: string }
+export type AppealInfo = {
+  restrictedUntil: string
+  reasonCode: string
+  statement: string
+  /** Set once the restriction was lifted, from this case or any other */
+  liftedAt: string | null
+}
 
 export type CaseDecision = { outcome: string; reasonCode: string; by: string; at: string }
 

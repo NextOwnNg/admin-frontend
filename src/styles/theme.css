@@ -23,6 +23,9 @@
   --color-slate: var(--nx-slate);
   --color-info: var(--nx-info);
   --color-info-foreground: var(--nx-paper);
+  /* Status text on a status tint (badges) */
+  --color-success-strong: var(--nx-success-strong);
+  --color-warning-strong: var(--nx-warning-strong);
 
   /* Typography: Inter variable font with optical sizing; large sizes render as Inter Display */
   --font-sans: 'Inter Variable', 'Inter', system-ui, 'Segoe UI', sans-serif;

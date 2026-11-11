@@ -117,8 +117,11 @@ describe('pilot settings (ADM-FE-09, Phase C design §4.5)', () => {
     await open()
     const region = await edit('Cities and areas')
     await userEvent.type(within(region).getByRole('textbox', { name: 'City 1 name' }), 'x')
-    const { confirm } = await saveWithReason(region)
+    const { dialog, confirm } = await saveWithReason(region)
     await userEvent.click(confirm)
+    // The dialog stays open with the error listed; closing it shows the field
+    expect(await within(dialog).findByText('City 1 name: That city is not in Nigeria.')).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
     expect(await within(region).findByText('That city is not in Nigeria.')).toBeInTheDocument()
     expect(within(region).getByRole('textbox', { name: 'City 1 name' })).toHaveAccessibleDescription(
       /That city is not in Nigeria\./,
@@ -235,6 +238,85 @@ describe('pilot settings (ADM-FE-09, Phase C design §4.5)', () => {
     const view = await section('Categories')
     expect(view).toHaveTextContent('Phones')
     expect(view).not.toHaveTextContent('Mobiles')
+  })
+
+  it("says when it couldn't check whether the change was saved (C2 review)", async () => {
+    await open()
+    server.use(http.put(`${apiBaseUrl}/admin/settings/:section`, () => HttpResponse.error(), { once: true }))
+    const region = await edit('Reservation duration')
+    const field = within(region).getByRole('spinbutton', { name: 'Reservation duration (days)' })
+    await userEvent.clear(field)
+    await userEvent.type(field, '5')
+    const { dialog, confirm } = await saveWithReason(region)
+    server.use(http.get(`${apiBaseUrl}/admin/settings`, () => HttpResponse.error()))
+    await userEvent.click(confirm)
+    expect(await within(dialog).findByText("We couldn't check whether your change was saved.")).toBeInTheDocument()
+    expect(within(dialog).queryByText(/Nothing changed on the server/)).not.toBeInTheDocument()
+  })
+
+  it('keeps the dialog and the reason on a server field error, listing fields not on screen (Review Focus 3)', async () => {
+    server.use(
+      http.put(`${apiBaseUrl}/admin/settings/:section`, () =>
+        HttpResponse.json(
+          {
+            code: 'VALIDATION_ERROR',
+            message: 'Check',
+            field_errors: { 'value.0.areas.9.name': 'That name is not allowed.', 'value.0.name': 'Too short.' },
+          },
+          { status: 422 },
+        ),
+      ),
+    )
+    await open()
+    const region = await edit('Cities and areas')
+    await userEvent.click(within(region).getByRole('button', { name: 'Add area to Lagos' }))
+    await userEvent.type(within(region).getByRole('textbox', { name: 'Area 7 in Lagos' }), 'Ogba')
+    const { dialog, confirm } = await saveWithReason(region)
+    await userEvent.click(confirm)
+    expect(await within(dialog).findByText('Area 10 in Lagos: That name is not allowed.')).toBeInTheDocument()
+    expect(within(dialog).getByText('City 1 name: Too short.')).toBeInTheDocument()
+    expect(within(dialog).getByRole('textbox', { name: 'Why are you changing this?' })).toHaveValue(REASON)
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(await within(region).findByText('Too short.')).toBeInTheDocument()
+  })
+
+  it('returns focus to the section heading after Save and after Cancel (C2 review)', async () => {
+    await open()
+    let region = await edit('Offer lifetime')
+    await userEvent.click(within(region).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Offer lifetime' })).toHaveFocus())
+
+    region = await edit('Offer lifetime')
+    const field = within(region).getByRole('spinbutton', { name: 'Offer lifetime (hours)' })
+    await userEvent.clear(field)
+    await userEvent.type(field, '96')
+    const { confirm } = await saveWithReason(region)
+    await userEvent.click(confirm)
+    await screen.findByRole('status', { name: 'Saved' })
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Offer lifetime' })).toHaveFocus())
+  })
+
+  it('announces a whole-list rule when it fails (C2 review)', async () => {
+    await open()
+    const region = await edit('Categories')
+    for (const box of within(region).getAllByRole('checkbox', { checked: true })) await userEvent.click(box)
+    await userEvent.click(within(region).getByRole('button', { name: 'Save' }))
+    expect(await within(region).findByRole('alert')).toBeInTheDocument()
+  })
+
+  it('shows a list setting change in the log as old → new lines, not raw data (C2 review)', async () => {
+    const { router } = await open()
+    const current = (await apiClient.get<PilotSettings>('/admin/settings')).data
+    const next = current.categories.map((c) => (c.name === 'Bikes' ? { ...c, name: 'Bicycles' } : c))
+    await apiClient.put(
+      '/admin/settings/categories',
+      { value: next, reason: 'Clearer category name', expectedVersion: current.version },
+      { headers: idempotencyHeaders(newIdempotencyKey()) },
+    )
+    await router.navigate('/audit')
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Show details' }))[0]!)
+    expect(await screen.findByText('Renamed category Bikes to Bicycles')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/\{"id":/)
   })
 
   it('edits one section at a time', async () => {

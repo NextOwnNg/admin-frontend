@@ -50,6 +50,7 @@ export function QueueTable({
     {
       id: 'case',
       header: 'Case',
+      rowHeader: true,
       cell: (c) => (
         <div className="flex min-w-56 flex-col gap-0.5">
           <Link

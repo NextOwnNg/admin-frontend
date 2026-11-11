@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Banner } from '@/components/ui/Banner'
 import { Field } from '@/components/ui/Field'
 import { getSettings, settingsQueryKey, useUpdateSettings } from '@/features/settings/api/useSettings'
-import { changeLines } from '@/features/settings/changes'
+import { changeLines, fieldName } from '@/features/settings/changes'
 import { SECTION_LABELS } from '@/features/settings/schemas'
 import { toApiError } from '@/lib/api/api-error'
 import { errorMessage, fieldErrorsOf, isConflict } from '@/lib/api/error-message'
@@ -47,7 +47,9 @@ export function SettingsConfirmDialog<S extends SettingsSection>({
   const update = useUpdateSettings()
   const [key] = useState(newIdempotencyKey)
   const [reason, setReason] = useState('')
-  const [phase, setPhase] = useState<'idle' | 'saving' | 'checking' | 'not-saved'>('idle')
+  const [phase, setPhase] = useState<'idle' | 'saving' | 'checking' | 'not-saved' | 'unchecked'>('idle')
+  // The server's field errors, in words, so one on a field that isn't on screen still shows
+  const [fieldList, setFieldList] = useState<string[]>([])
   const [problem, setProblem] = useState<string | null>(null)
   const [reasonError, setReasonError] = useState<string | null>(null)
   const label = SECTION_LABELS[section]
@@ -57,6 +59,7 @@ export function SettingsConfirmDialog<S extends SettingsSection>({
   async function save() {
     setPhase('saving')
     setProblem(null)
+    setFieldList([])
     try {
       const result = await update.mutateAsync({
         section,
@@ -78,7 +81,9 @@ export function SettingsConfirmDialog<S extends SettingsSection>({
         const fresh = await queryClient
           .fetchQuery({ queryKey: settingsQueryKey, queryFn: () => getSettings(), staleTime: 0 })
           .catch(() => null)
-        if (fresh && JSON.stringify(fresh[section]) === JSON.stringify(after)) {
+        // The check itself failed: say we don't know, not that nothing changed
+        if (!fresh) return setPhase('unchecked')
+        if (JSON.stringify(fresh[section]) === JSON.stringify(after)) {
           return onOutcome({ kind: 'saved', entry: null })
         }
         return setPhase('not-saved')
@@ -88,7 +93,12 @@ export function SettingsConfirmDialog<S extends SettingsSection>({
         setReasonError(fields.reason)
         return setPhase('idle')
       }
-      if (fields) return onOutcome({ kind: 'fields', errors: fields })
+      if (fields) {
+        // The dialog stays open with the reason; the fields on screen also show their own message
+        setFieldList(Object.entries(fields).map(([path, message]) => `${fieldName(section, path, after)}: ${message}`))
+        onOutcome({ kind: 'fields', errors: fields })
+        return setPhase('idle')
+      }
       setProblem(errorMessage(error, "Your change wasn't saved."))
       setPhase('idle')
     }
@@ -133,6 +143,20 @@ export function SettingsConfirmDialog<S extends SettingsSection>({
               {phase === 'not-saved' && (
                 <Banner tone="error" title="Your change wasn't saved.">
                   Nothing changed on the server. Try again: it can't be saved twice.
+                </Banner>
+              )}
+              {phase === 'unchecked' && (
+                <Banner tone="error" title="We couldn't check whether your change was saved.">
+                  Try again: it can't be saved twice.
+                </Banner>
+              )}
+              {fieldList.length > 0 && (
+                <Banner tone="error" title="Check these values">
+                  <ul className="list-disc pl-5">
+                    {fieldList.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
                 </Banner>
               )}
               {problem && <Banner tone="error" title={problem} />}

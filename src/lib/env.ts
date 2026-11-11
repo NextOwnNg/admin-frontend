@@ -17,4 +17,7 @@ const rawEnvName = import.meta.env.VITE_ENV_NAME
 /** Which environment this build is for; drives the environment ribbon. Unknown values read as `local`. */
 export const envName: EnvName = ENV_NAMES.find((name) => name === rawEnvName) ?? 'local'
 
+/** Which build this is, for client error reports: the commit on Vercel, else the package version. */
+export const buildVersion: string = import.meta.env.VITE_BUILD_VERSION || 'dev'
+
 export const isProduction: boolean = envName === 'production'

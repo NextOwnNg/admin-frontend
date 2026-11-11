@@ -1,9 +1,10 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { RequireRole } from '@/app/guards/RequireRole'
 import { RequireStaff } from '@/app/guards/RequireStaff'
+import { apiClient } from '@/lib/api/client'
 import { signInAs } from '@/test/auth'
 import { server } from '@/test/msw/server'
 import { renderWithProviders } from '@/test/utils'
@@ -29,18 +30,37 @@ describe('RequireStaff', () => {
 
   it('shows a retryable error when the session check fails, instead of signing out', async () => {
     await signInAs('administrator')
+    // The check retries once, so it fails twice before the guard gives up
+    let failures = 2
     server.use(
-      http.get('/api/admin/session', () => HttpResponse.json({ code: 'SERVER_ERROR' }, { status: 503 }), {
-        once: true,
+      http.get('/api/admin/session', () => {
+        if (failures-- > 0) return HttpResponse.json({ code: 'SERVER_ERROR' }, { status: 503 })
+        return undefined
       }),
     )
     renderWithProviders(routes, { initialPath: '/settings' })
 
-    expect(await screen.findByText("We couldn't load this")).toBeInTheDocument()
+    expect(await screen.findByText("We couldn't load this", {}, { timeout: 4000 })).toBeInTheDocument()
     expect(screen.queryByText('Sign-in page')).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: 'Settings' })).toBeInTheDocument()
+  })
+
+  it('gives up on a dead network after one retry, with a short timeout (Phase A review)', async () => {
+    let calls = 0
+    server.use(
+      http.get('/api/admin/session', () => {
+        calls += 1
+        return HttpResponse.error()
+      }),
+    )
+    const get = vi.spyOn(apiClient, 'get')
+    renderWithProviders(routes, { initialPath: '/settings' })
+
+    expect(await screen.findByText("We couldn't load this", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(calls).toBe(2)
+    expect(get).toHaveBeenCalledWith('/admin/session', expect.objectContaining({ timeout: 4_000 }))
   })
 })
 

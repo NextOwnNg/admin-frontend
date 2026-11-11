@@ -1,11 +1,12 @@
 import { RouterProvider as AriaRouterProvider } from '@heroui/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { Outlet, ScrollRestoration, useHref, useNavigate } from 'react-router'
+import { Outlet, ScrollRestoration, useHref, useMatches, useNavigate } from 'react-router'
 import { SmallScreenNotice } from '@/components/layout/SmallScreenNotice'
 import { endSession } from '@/features/auth/api/useSignOut'
 import { NARROW_SCREEN, useMediaQuery } from '@/hooks/useMediaQuery'
 import { onAuthExpired } from '@/lib/api/client'
+import { routePattern, setCurrentRoute } from '@/lib/observability/report-error'
 
 /**
  * Lets HeroUI (React Aria) links navigate through React Router, and ends the session when the API says it
@@ -15,6 +16,8 @@ export function RootLayout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const narrow = useMediaQuery(NARROW_SCREEN)
+  // Errors raised outside React are reported against the route on screen, as its pattern
+  setCurrentRoute(routePattern(useMatches()))
 
   // The guards then send the operator to sign in with `next`; repeated 401s only clear what's already gone
   useEffect(() => onAuthExpired(() => endSession(queryClient, { callServer: false })), [queryClient])

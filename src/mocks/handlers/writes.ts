@@ -90,8 +90,23 @@ function reasonKindFor(body: CaseActionBody): 'violation' | 'decision' | null {
   }
 }
 
-const reasonFits = (code: string | undefined, kind: 'violation' | 'decision', target: TargetType) =>
-  REASON_CODES.some((r) => r.code === code && r.kind === kind && r.appliesTo.includes(target))
+const reasonFits = (
+  code: string | undefined,
+  kind: 'violation' | 'decision',
+  target: TargetType,
+  caseKind?: CaseRecord['kind'],
+) =>
+  REASON_CODES.some(
+    (r) =>
+      r.code === code &&
+      r.kind === kind &&
+      r.appliesTo.includes(target) &&
+      (!r.caseKinds || (caseKind !== undefined && r.caseKinds.includes(caseKind))),
+  )
+
+/** A proposed outcome in words: a close outcome on a report, a transaction outcome on a transaction case */
+const proposedLabel = (outcome: unknown) =>
+  CLOSE_OUTCOMES[outcome as CloseOutcome] ?? TRANSACTION_OUTCOME[outcome as TransactionOutcome] ?? String(outcome)
 
 const reasonLabel = (code: string) => REASON_CODES.find((r) => r.code === code)?.label ?? code
 
@@ -122,7 +137,7 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
   if (contentAction && body.target.type === 'account') return invalid('target', 'Choose the reported content.')
 
   const kind = reasonKindFor(body)
-  if (kind && !reasonFits(body.reasonCode, kind, body.target.type)) {
+  if (kind && !reasonFits(body.reasonCode, kind, body.target.type, c.kind)) {
     return invalid('reasonCode', 'Choose a reason that fits this action.')
   }
   if ((body.action === 'warn' || body.action === 'request_info') && !nonEmpty(body.message)) {
@@ -182,7 +197,7 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
       c.notes.push({
         id: `${c.id}-note-${c.notes.length + 1}`,
         author: viewer.displayName,
-        body: `Proposed outcome: ${CLOSE_OUTCOMES[body.outcome as CloseOutcome] ?? String(body.outcome)}. ${body.note ?? ''}`.trim(),
+        body: `Proposed outcome: ${proposedLabel(body.outcome)}. ${body.note ?? ''}`.trim(),
         at: new Date().toISOString(),
       })
       after.proposedOutcome = body.outcome
@@ -190,6 +205,12 @@ function caseAction(c: CaseRecord, body: CaseActionBody, viewer: Signed): Respon
     case 'lift_restriction':
       after.restricted = false
       setRestriction(body.target.id, null)
+      // Every appeal by this member now reads as lifted, open or closed
+      for (const other of store().cases) {
+        if (other.appeal && other.parties.some((p) => p.userId === body.target.id)) {
+          other.appeal.liftedAt = new Date().toISOString()
+        }
+      }
       break
   }
   after.status = c.status
@@ -409,6 +430,8 @@ export const writeHandlers: RequestHandler[] = [
           (c.assignee === null || c.assignee.staffId === viewer.staffId)
         // A stale version first: losing a race reads as "it changed", not as a refusal
         if (body.expectedVersion !== c.version) return conflict(c.version)
+        // Resolved meanwhile: say so, whoever asked, rather than refusing an agent who could have taken it
+        if (isTerminal(c)) return error(409, 'CASE_RESOLVED', 'This case was already resolved.')
         if (!hasRole(viewer, 'moderator', 'administrator') && !selfTake) return forbidden()
         const assignee = body.assigneeId === null ? null : STAFF.find((s) => s.staffId === body.assigneeId)
         if (assignee === undefined) return invalid('assigneeId', 'Choose someone on the staff list.')
@@ -431,7 +454,10 @@ export const writeHandlers: RequestHandler[] = [
         )
         return HttpResponse.json(casesDb.detail(c.id))
       },
-      (c, viewer) => hasRole(viewer, 'support_agent') && isException(c),
+      // An agent may take an exception; one resolved meanwhile (unassigned or theirs) answers "already resolved"
+      (c, viewer) =>
+        hasRole(viewer, 'support_agent') &&
+        (isException(c) || (isTerminal(c) && (c.assignee === null || c.assignee.staffId === viewer.staffId))),
     ),
   ),
 

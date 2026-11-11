@@ -1,7 +1,7 @@
 import { toApiError, type ApiErrorCode } from '@/lib/api/api-error'
 
 // The yes/no checks live apart so first-load code (session, query retries) doesn't carry the wording
-export { isConflict, isForbidden, isNotFound, isRetryable, isSignedOut } from '@/lib/api/error-checks'
+export { isCaseResolved, isConflict, isForbidden, isNotFound, isRetryable, isSignedOut } from '@/lib/api/error-checks'
 
 /**
  * The one place that reads a failed request (PRD §3.3). Screens ask questions in words ("is it a field

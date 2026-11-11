@@ -54,6 +54,15 @@ describe('DataTable (design §7)', () => {
     await expectNoA11yViolations(container)
   })
 
+  it('names each row by the column marked as its header (accessibility sweep)', () => {
+    const byAge: Column<Row>[] = [
+      { id: 'age', header: 'Age', cell: (r) => `${r.age} h` },
+      { id: 'name', header: 'Name', rowHeader: true, cell: (r) => r.name },
+    ]
+    render(<DataTable {...base} columns={byAge} rows={rows} status="success" />)
+    expect(screen.getByRole('row', { name: 'Second' })).toBeInTheDocument()
+  })
+
   it('asks to sort when a sortable header is pressed', async () => {
     const onSortChange = vi.fn()
     render(

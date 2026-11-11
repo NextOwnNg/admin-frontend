@@ -57,7 +57,9 @@ describe('Transaction detail (UX-28, ADM-FE-04)', () => {
     const confirm = await screen.findByRole('dialog', { name: /\?$/ })
     await userEvent.click(within(confirm).getByRole('button', { name: 'Resolve transaction' }))
 
-    expect(await screen.findByRole('status', { name: 'Recorded' })).toHaveTextContent('resolved transaction')
+    const recorded = await screen.findByRole('status', { name: 'Recorded' })
+    expect(recorded).toHaveTextContent('resolved transaction')
+    await waitFor(() => expect(recorded).toHaveFocus())
     const reservations = screen.getByRole('region', { name: 'Reservations' })
     await waitFor(() => expect(within(reservations).getAllByText(/^Released/)).toHaveLength(2))
     expect(within(panel()).getByText('Resolved by support: cancelled')).toBeInTheDocument()

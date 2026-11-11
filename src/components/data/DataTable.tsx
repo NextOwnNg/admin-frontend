@@ -12,8 +12,10 @@ export type Column<T> = {
   sortable?: boolean
   cell: (row: T) => ReactNode
   className?: string
-  /** Whether Table options may hide it (default true; the first column is never hidden) */
+  /** Whether Table options may hide it (default true; the first column and the row header are never hidden) */
   hideable?: boolean
+  /** Names each row for screen readers (default: the first column). Use the column that tells rows apart. */
+  rowHeader?: boolean
 }
 
 export type SortState = { column: string; direction: 'ascending' | 'descending' }
@@ -58,7 +60,7 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   const stored = useTablePrefs((s) => (tableId ? s.prefs[tableId] : undefined))
   const prefs = stored ?? DEFAULT_TABLE_PREFS
-  const isHideable = (column: Column<T>, index: number) => index > 0 && column.hideable !== false
+  const isHideable = (column: Column<T>, index: number) => index > 0 && column.hideable !== false && !column.rowHeader
   const visible = columns.filter(
     (column, index) => !isHideable(column, index) || !prefs.hiddenColumns.includes(column.id),
   )
@@ -71,6 +73,7 @@ export function DataTable<T>({
   const allColumns: Column<T>[] = rowActions
     ? [...visible, { id: '__actions', header: 'Actions', cell: () => null, className: 'w-14' }]
     : visible
+  const rowHeaderId = (allColumns.find((c) => c.rowHeader) ?? allColumns[0])?.id
   const cellPadding = prefs.density === 'compact' ? 'py-1.5' : 'py-3'
 
   const table = (
@@ -84,11 +87,11 @@ export function DataTable<T>({
           onSortChange={(d) => onSortChange?.({ column: String(d.column), direction: d.direction })}
         >
           <Table.Header className="sticky top-0 z-10 bg-paper">
-            {allColumns.map((column, index) => (
+            {allColumns.map((column) => (
               <Table.Column
                 key={column.id}
                 id={column.id}
-                isRowHeader={index === 0}
+                isRowHeader={column.id === rowHeaderId}
                 allowsSorting={column.sortable}
                 className={cx('text-left text-caption text-muted', column.className)}
               >

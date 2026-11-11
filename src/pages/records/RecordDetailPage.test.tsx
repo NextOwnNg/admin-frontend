@@ -4,8 +4,10 @@ import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { routes } from '@/app/router'
 import { apiClient } from '@/lib/api/client'
-import type { RecordPage, ReportRow } from '@/lib/api/types/records'
+import type { FeedDetail, ListingDetail, RecordPage, ReportRow } from '@/lib/api/types/records'
+import { LISTING_STATUS } from '@/lib/copy/records'
 import { apiBaseUrl } from '@/lib/env'
+import { formatNaira } from '@/lib/money/money'
 import { REC } from '@/mocks/records-seed'
 import { SCENARIO } from '@/mocks/seed'
 import { signInAs } from '@/test/auth'
@@ -181,10 +183,22 @@ describe('listing, offer, feed and report records (Phase C design §4.2)', () =>
     await expectNoA11yViolations(container)
   })
 
+  it("shows the listing's live price and status, and counts the comments (C1 review)", async () => {
+    await signInAs('moderator')
+    const post = (await apiClient.get<FeedDetail>('/admin/records/feed/F-904')).data
+    const listing = (await apiClient.get<ListingDetail>(`/admin/records/listings/${post.listing.id}`)).data
+    renderWithProviders(routes, { initialPath: '/records/feed/F-904' })
+    const section = await screen.findByRole('region', { name: 'Post' })
+    const price = listing.askingKobo === null ? 'No asking price' : formatNaira(listing.askingKobo)
+    await waitFor(() => expect(section).toHaveTextContent(price))
+    expect(section).toHaveTextContent(LISTING_STATUS[listing.status].label)
+    expect(await screen.findByRole('region', { name: `Comments (${post.comments.length})` })).toBeInTheDocument()
+  })
+
   it('shows a removed comment as removed, not what it said', async () => {
     await signInAs('moderator')
     renderWithProviders(routes, { initialPath: '/records/feed/F-904' })
-    const comments = await screen.findByRole('region', { name: 'Comments' })
+    const comments = await screen.findByRole('region', { name: /^Comments/ })
     expect(comments).toHaveTextContent('Content removed by its author')
     expect(comments).not.toHaveTextContent('Old comment the author deleted')
     expect(comments).toHaveTextContent('Is it still available?')

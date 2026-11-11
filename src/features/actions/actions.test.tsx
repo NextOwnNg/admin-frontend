@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ActionDialog } from '@/features/actions/components/ActionDialog'
 import { ACTIONS, actionsFor, type ActionContext, type ActionDefinition } from '@/features/actions/definitions'
+import type { ApiError } from '@/lib/api/api-error'
 import { apiClient } from '@/lib/api/client'
 import type { AuditEntry } from '@/lib/api/types/audit'
 import type { CaseDetail } from '@/lib/api/types/cases'
@@ -151,6 +152,46 @@ describe('Phase B carry-overs for actions (Phase C design §8)', () => {
     const note = result.case.notes.at(-1)!.body
     expect(note).toContain('No violation')
     expect(note).not.toContain('no_violation')
+  })
+
+  it('records a proposed transaction outcome in words (B review)', async () => {
+    await signInWithSession('support_agent')
+    const { data } = await apiClient.get<CaseDetail>(`/admin/cases/${SCENARIO.paymentDispute}`)
+    const { data: result } = await apiClient.post<{ case: CaseDetail }>(
+      `/admin/cases/${SCENARIO.paymentDispute}/actions`,
+      {
+        action: 'propose',
+        target: { type: 'case', id: SCENARIO.paymentDispute },
+        outcome: 'cancelled',
+        note: 'Both sides asked to call it off.',
+        expectedVersion: data.version,
+      },
+      { headers: { 'Idempotency-Key': crypto.randomUUID() } },
+    )
+    expect(result.case.notes.at(-1)!.body).toMatch(/^Proposed outcome: Resolved by support: cancelled\./)
+  })
+
+  it('refuses a duplicate-only reason on an ordinary report (C2 review)', async () => {
+    await signInWithSession('moderator')
+    const { data } = await apiClient.get<CaseDetail>(`/admin/cases/${SCENARIO.noEvidence}`)
+    const failed = await apiClient
+      .post(
+        `/admin/cases/${SCENARIO.noEvidence}/actions`,
+        {
+          action: 'close',
+          target: { type: 'case', id: SCENARIO.noEvidence },
+          outcome: 'no_violation',
+          reasonCode: 'NOT_A_DUPLICATE',
+          expectedVersion: data.version,
+        },
+        { headers: { 'Idempotency-Key': crypto.randomUUID() } },
+      )
+      .then(
+        () => null,
+        (e: ApiError) => e,
+      )
+    expect(failed?.status).toBe(422)
+    expect(failed?.fieldErrors).toHaveProperty('reasonCode')
   })
 })
 

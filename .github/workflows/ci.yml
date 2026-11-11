@@ -16,4 +16,13 @@ jobs:
       - run: npm ci
       # Typecheck, lint, format, tests (including axe and the banned-phrase scan)
       - run: npm run check
+      # Browser flows and the accessibility sweep in Chromium (PRD §10.1, design §7)
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:flow
+      # A production build: refuses the mock, and must carry no mock code (design §7)
       - run: npm run build
+        env:
+          VITE_ENV_NAME: production
+          VITE_USE_MOCK_API: 'false'
+      - run: npm run check:dist
+      - run: npm run check:bundle

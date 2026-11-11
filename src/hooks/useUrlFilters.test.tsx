@@ -42,6 +42,14 @@ describe('useUrlFilters (design §4.2)', () => {
     expect(hook.result.current.present).toEqual({ severity: ['S1', 'S2'] })
   })
 
+  it('sets several filters at once and starts paging again', () => {
+    const { hook, search } = setup('/?cursor=25&age=1h')
+    act(() => hook.result.current.setFilters({ severity: ['S2'], age: undefined }))
+    expect(search().get('severity')).toBe('S2')
+    expect(search().has('age')).toBe(false)
+    expect(search().has('cursor')).toBe(false)
+  })
+
   it('writes filters to the address and starts paging again', () => {
     const { hook, search } = setup('/?cursor=25')
     act(() => hook.result.current.setFilter('severity', ['S3']))

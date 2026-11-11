@@ -471,6 +471,7 @@ const CASE_SEEDS: CaseSeed[] = [
     // The restriction's end is set from `now` when the seed is built
     appeal: {
       restrictedUntil: '',
+      liftedAt: null,
       reasonCode: 'ABUSE',
       statement:
         'I lost my temper after a buyer insulted my price, and I am sorry. I have deleted nothing and will keep it polite. Please let me sell again.',
