@@ -43,6 +43,7 @@ afterEach(() => {
   useUiStore.setState(useUiStore.getInitialState())
   useTablePrefs.setState(useTablePrefs.getInitialState())
   localStorage.clear()
+  sessionStorage.clear()
   cleanup()
 })
 afterAll(() => server.close())

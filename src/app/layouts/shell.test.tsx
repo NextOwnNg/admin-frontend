@@ -10,7 +10,7 @@ import { RootLayout } from '@/app/layouts/RootLayout'
 import { EnvRibbon } from '@/components/layout/EnvRibbon'
 import { apiClient } from '@/lib/api/client'
 import { staffDb } from '@/mocks/db/staff'
-import { SAMPLE_CODE } from '@/mocks/sample-code'
+import { SAMPLE_PASSWORD, STAFF_EMAILS } from '@/mocks/sample-accounts'
 import { SignInPage } from '@/pages/SignInPage'
 import { expectNoA11yViolations } from '@/test/axe'
 import { signInAs } from '@/test/auth'
@@ -141,10 +141,9 @@ describe('idle timeout (ADM-T-06)', () => {
     expect(queryClient.getQueryData(['admin', 'cases'])).toBeUndefined()
 
     vi.useRealTimers()
-    await userEvent.type(screen.getByRole('textbox', { name: 'Phone number' }), '0800 000 0102')
-    await userEvent.click(screen.getByRole('button', { name: 'Send code' }))
-    await userEvent.type(await screen.findByRole('textbox', { name: '6-digit code' }), SAMPLE_CODE)
-    await userEvent.click(screen.getByRole('button', { name: 'Verify' }))
+    await userEvent.type(screen.getByRole('textbox', { name: 'Email' }), STAFF_EMAILS.moderator)
+    await userEvent.type(screen.getByLabelText('Password'), SAMPLE_PASSWORD)
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(await screen.findByRole('heading', { name: 'Reports page' })).toBeInTheDocument()
   })
 

@@ -7,6 +7,7 @@ import {
   House,
   Settings,
   Tag,
+  UserPlus,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -18,7 +19,16 @@ import type { StaffRole } from '@/lib/copy/labels'
  */
 
 export type RouteId =
-  'overview' | 'reports' | 'case' | 'transaction' | 'records' | 'exceptions' | 'audit' | 'settings' | 'dashboard'
+  | 'overview'
+  | 'reports'
+  | 'case'
+  | 'transaction'
+  | 'records'
+  | 'exceptions'
+  | 'audit'
+  | 'settings'
+  | 'staff'
+  | 'dashboard'
 
 const ALL_STAFF: StaffRole[] = ['support_agent', 'moderator', 'administrator']
 
@@ -31,6 +41,7 @@ export const ROUTE_ROLES: Record<RouteId, StaffRole[]> = {
   exceptions: ['support_agent', 'administrator'],
   audit: ['administrator'],
   settings: ['administrator'],
+  staff: ['administrator'],
   dashboard: ['administrator'],
 }
 
@@ -49,6 +60,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'exceptions', label: 'Exceptions', to: '/exceptions', icon: ClockAlert, routeId: 'exceptions' },
   { id: 'audit', label: 'Moderation log', to: '/audit', icon: History, routeId: 'audit' },
   { id: 'settings', label: 'Settings', to: '/settings', icon: Settings, routeId: 'settings' },
+  { id: 'staff', label: 'Staff', to: '/staff', icon: UserPlus, routeId: 'staff' },
   { id: 'dashboard', label: 'Dashboard', to: '/dashboard', icon: ChartColumn, routeId: 'dashboard' },
 ]
 

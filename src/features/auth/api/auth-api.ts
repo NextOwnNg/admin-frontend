@@ -1,11 +1,15 @@
 import { apiClient } from '@/lib/api/client'
 import { isSignedOut } from '@/lib/api/error-checks'
 import type {
-  OtpRequestResult,
-  OtpVerifyResult,
+  AcceptInviteBody,
+  ForgotPasswordBody,
+  InviteDetails,
+  LoginBody,
+  LoginResult,
+  ResendResult,
+  ResetPasswordBody,
   SecondFactorBody,
   StaffSession,
-  OtpVerifyBody,
 } from '@/lib/api/types/auth'
 
 /** Typed staff-auth endpoints (PRD §3.5). Only the hooks in this folder call them. */
@@ -27,18 +31,38 @@ export async function getSession({ signal }: { signal?: AbortSignal } = {}): Pro
   }
 }
 
-export async function requestCode(phone: string): Promise<OtpRequestResult> {
-  const { data } = await apiClient.post<OtpRequestResult>('/admin/auth/otp/request', { phone })
-  return data
-}
-
-export async function verifyCode(body: OtpVerifyBody): Promise<OtpVerifyResult> {
-  const { data } = await apiClient.post<OtpVerifyResult>('/admin/auth/otp/verify', body)
+export async function login(body: LoginBody): Promise<LoginResult> {
+  const { data } = await apiClient.post<LoginResult>('/admin/auth/login', body)
   return data
 }
 
 export async function submitSecondFactor(body: SecondFactorBody): Promise<void> {
   await apiClient.post('/admin/auth/second-factor', body)
+}
+
+export async function resendSecondFactor(): Promise<ResendResult> {
+  const { data } = await apiClient.post<ResendResult>('/admin/auth/second-factor/resend')
+  return data
+}
+
+/** The same answer for any email: nothing says whether it has an account */
+export async function forgotPassword(body: ForgotPasswordBody): Promise<ResendResult> {
+  const { data } = await apiClient.post<ResendResult>('/admin/auth/password/forgot', body)
+  return data
+}
+
+export async function resetPassword(body: ResetPasswordBody): Promise<LoginResult> {
+  const { data } = await apiClient.post<LoginResult>('/admin/auth/password/reset', body)
+  return data
+}
+
+export async function getInvite(token: string, { signal }: { signal?: AbortSignal } = {}): Promise<InviteDetails> {
+  const { data } = await apiClient.get<InviteDetails>(`/admin/invites/${encodeURIComponent(token)}`, { signal })
+  return data
+}
+
+export async function acceptInvite(token: string, body: AcceptInviteBody): Promise<void> {
+  await apiClient.post(`/admin/invites/${encodeURIComponent(token)}/accept`, body)
 }
 
 export async function signOut(): Promise<void> {

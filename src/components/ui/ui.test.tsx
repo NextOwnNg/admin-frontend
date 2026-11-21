@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Banner } from '@/components/ui/Banner'
 import { ConfirmModal } from '@/components/ui/ConfirmModal'
 import { PlainButton } from '@/components/ui/Button'
+import { PasswordField } from '@/components/ui/PasswordField'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { PermissionDenied, TableSkeleton } from '@/components/ui/States'
 import { TextField } from '@/components/ui/TextField'
@@ -112,5 +113,19 @@ describe('buttons and loading', () => {
   it('marks table skeletons as busy', () => {
     render(<TableSkeleton rows={3} columns={4} />)
     expect(screen.getByRole('status', { name: 'Loading' })).toHaveAttribute('aria-busy', 'true')
+  })
+})
+
+describe('PasswordField', () => {
+  it('shows and hides the password', async () => {
+    const { container } = render(<PasswordField autoComplete="current-password" defaultValue="Pilot-2026!" />)
+    const input = screen.getByLabelText('Password')
+    expect(input).toHaveAttribute('type', 'password')
+    const toggle = screen.getByRole('button', { name: 'Show password' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await userEvent.click(toggle)
+    expect(input).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute('aria-pressed', 'true')
+    await expectNoA11yViolations(container)
   })
 })

@@ -22,7 +22,7 @@ npm run dev        # http://localhost:5173, runs on the in-browser mock admin AP
 | `npm run lint` | oxlint, then ESLint (type-aware, React Hooks, jsx-a11y) |
 | `npm run format` | Prettier |
 | `npm run check` | Typecheck, lint, format check and all jsdom tests |
-| `npm run check:dist` | Fails if a build in `dist/` (or the folder given) carries any mock code: the MSW worker, MSW, or the sample accounts |
+| `npm run check:dist` | Fails if a build in `dist/` (or the folder given) carries any mock code: the MSW worker, MSW, the sample accounts or the mock invite link |
 | `npm run check:bundle` | Fails if the initial JS in `dist/` is over 300 kB gzipped |
 
 ## Environment
@@ -41,14 +41,16 @@ A build with `VITE_ENV_NAME=production` and `VITE_USE_MOCK_API=true` fails on pu
 
 ## Mock accounts
 
-With `VITE_USE_MOCK_API=true`, these fictional staff accounts sign in. The sign-in page also offers one-click buttons for each while the mock API is on.
+With `VITE_USE_MOCK_API=true`, these fictional staff accounts sign in with email and password. Every one has the password `Pilot-2026!`. The sign-in page also offers one-click buttons for each while the mock API is on.
 
-| Role | Name | Phone | Codes |
+| Role | Name | Email | After the password |
 | :-- | :-- | :-- | :-- |
-| Support agent | Chiamaka Eze | 0800 000 0101 | `123456` |
-| Moderator | Tunde Bakare | 0800 000 0102 | `123456` |
-| Administrator | Ngozi Adeyemi | 0800 000 0103 | `123456`, then second code `654321` |
-| Not staff (refused) | — | 0800 000 0199 | `123456` → "This number can't sign in here." |
+| Support agent | Chiamaka Eze | `chiamaka@nextown.test` | Signed in |
+| Moderator | Tunde Bakare | `tunde@nextown.test` | Signed in |
+| Administrator | Ngozi Adeyemi | `ngozi@nextown.test` | Asks for the emailed code: `123456` |
+| Not staff (refused) | — | `member@nextown.test` | "This account can't sign in here." |
+
+No email is sent on the mock. Every emailed code (the administrator's sign-in code, a password reset) is `123456`. After an administrator invites someone on **Staff** (`/staff`), the mock shows the invite link on screen ("Mock only: open the invite link") in place of the email. Invites, new accounts and changed passwords live in the tab's memory, so a reload resets them.
 
 The mock admin API lives in `src/mocks/` (`db/` holds the in-memory data, `handlers/` the endpoints).
 
@@ -76,6 +78,7 @@ The top-bar search (press `/`) finds cases, transactions and records by ID or na
 | Possible duplicate listing | `NX-000220`, repeating `L-5219` |
 | Reservation about to expire, no action needed yet | `NX-000234` / `T-000308` |
 | Pilot settings, history and the agreements notice | `/settings` (administrator); every change also appears in the moderation log |
+| Staff and invites: invite, resend, revoke, each with a reason and a log entry | `/staff` (administrator); the invitee accepts at `/join` |
 
 Support agents see every exception but take a row with **Assign to me** before acting on it.
 
@@ -102,6 +105,9 @@ The mock answers these one way. The real API may choose differently; each is a s
 | A revealed phone number | The revealed value stays in memory only while its section is on screen. The mock logs a retried reveal twice |
 | Exceptions for support agents | Every agent sees every exception and takes unassigned ones for themselves. The real API may scope rows per agent |
 | Dashboard attribution | Every event counts toward the day its listing was published (a cohort view). Completion counts deals accepted at least 7 days before the data-through time. The pilot start comes from the API (`pilotStart`) |
+| Sign-in and second factor | Email and password (`POST /admin/auth/login`). The API decides when an emailed code is needed (`secondFactorRequired`); the mock asks administrators. Codes are 6 digits and last 10 minutes; at most 3 are sent in 10 minutes, and 5 wrong passwords lock an email for 10 minutes. Resend waits come from the API (`resendAfterSeconds`); the first wait after sign-in is assumed to be 60 s |
+| Password reset | `POST /admin/auth/password/forgot` answers the same for any email. A successful reset signs the person in, and an administrator still enters their emailed code |
+| Invites | Administrators only. A link with a single-use token that lasts 7 days (`/join?token=…`); resending replaces the link and revoking kills it. One role per person. Accepting sets a password and signs in **without** a code, because the link proves the email: should the real API also ask for one? The console removes the token from the address and keeps it for the tab until it's used |
 | Client error reports | `POST /admin/client-errors` with the error name, a scrubbed message (no addresses, emails or long numbers, 200 characters at most), the route pattern (`/cases/:id`), the request ID, build version and environment. At most 10 a minute. The mock accepts reports from anyone, signed in or not |
 
 ## Hosting notes

@@ -22,6 +22,7 @@ describe('navItemsFor (design §7)', () => {
       'Exceptions',
       'Moderation log',
       'Settings',
+      'Staff',
       'Dashboard',
     ])
   })
@@ -43,6 +44,12 @@ describe('navItemsFor (design §7)', () => {
 })
 
 describe('canAccess', () => {
+  it('keeps staff administration for administrators (design 2026-11-21 §4.3)', () => {
+    expect(canAccess('staff', ['moderator'])).toBe(false)
+    expect(canAccess('staff', ['support_agent'])).toBe(false)
+    expect(canAccess('staff', ['administrator'])).toBe(true)
+  })
+
   it('keeps settings for administrators', () => {
     expect(canAccess('settings', ['moderator'])).toBe(false)
     expect(canAccess('settings', ['administrator'])).toBe(true)

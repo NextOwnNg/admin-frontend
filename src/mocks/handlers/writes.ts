@@ -20,7 +20,7 @@ import { canSee, casesDb, type Viewer } from '@/mocks/db/cases'
 import { store } from '@/mocks/db/store'
 import { transactionsDb } from '@/mocks/db/transactions'
 import { REASON_CODES } from '@/mocks/fixtures/reason-codes'
-import { STAFF } from '@/mocks/fixtures/staff'
+import { activeStaff } from '@/mocks/fixtures/staff'
 import type { CaseRecord, TransactionRecord } from '@/mocks/seed'
 import { error } from '@/mocks/handlers/http'
 import { idempotent } from '@/mocks/handlers/idempotent'
@@ -433,7 +433,7 @@ export const writeHandlers: RequestHandler[] = [
         // Resolved meanwhile: say so, whoever asked, rather than refusing an agent who could have taken it
         if (isTerminal(c)) return error(409, 'CASE_RESOLVED', 'This case was already resolved.')
         if (!hasRole(viewer, 'moderator', 'administrator') && !selfTake) return forbidden()
-        const assignee = body.assigneeId === null ? null : STAFF.find((s) => s.staffId === body.assigneeId)
+        const assignee = body.assigneeId === null ? null : activeStaff().find((s) => s.staffId === body.assigneeId)
         if (assignee === undefined) return invalid('assigneeId', 'Choose someone on the staff list.')
         if (isTerminal(c)) return error(422, 'VALIDATION_ERROR', 'This case is already closed')
 

@@ -28,11 +28,13 @@ describe('errorMessage (PRD §3.3)', () => {
     expect(errorMessage(http(503, 'SERVER_ERROR'))).toBe('Something went wrong on our side. Try again in a moment.')
   })
 
-  it('says what was wrong with a sign-in code or number', () => {
-    expect(errorMessage(http(422, 'OTP_INVALID'))).toBe(
-      "That code doesn't match. Check the text message and try again.",
+  it('says what was wrong with a sign-in, a code or an invite', () => {
+    expect(errorMessage(http(422, 'OTP_INVALID'))).toBe("That code doesn't match. Check the email and try again.")
+    expect(errorMessage(http(401, 'INVALID_CREDENTIALS'))).toBe("That email and password don't match.")
+    expect(errorMessage(http(403, 'NOT_STAFF'))).toBe("This account can't sign in here.")
+    expect(errorMessage(http(404, 'INVITE_INVALID'))).toBe(
+      'This invite link no longer works. Ask an administrator for a new one.',
     )
-    expect(errorMessage(http(403, 'NOT_STAFF'))).toBe("This number can't sign in here.")
   })
 
   it('prefixes what failed before the reason', () => {

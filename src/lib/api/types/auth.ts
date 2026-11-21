@@ -1,9 +1,8 @@
 import type { StaffRole } from '@/lib/copy/labels'
 
 /**
- * Staff authentication contract. Hand-written in the shape an OpenAPI generator would produce, so
- * `src/lib/api/generated/` can replace it when the backend spec lands (design §5). The second-factor
- * shape is a guess pending AD-D-02.
+ * Staff authentication contract: email and password, with one-time codes by email (design 2026-11-21 §5).
+ * Hand-written in the shape an OpenAPI generator would produce, mirroring the marketplace's `/auth` API.
  */
 
 export type { StaffRole }
@@ -19,13 +18,21 @@ export type StaffSession = {
   csrfToken?: string
 }
 
-/** `POST /admin/auth/otp/request` */
-export type OtpRequestBody = { phone: string }
-export type OtpRequestResult = { resendAfterSeconds: number }
-
-/** `POST /admin/auth/otp/verify` */
-export type OtpVerifyBody = { phone: string; code: string }
-export type OtpVerifyResult = { secondFactorRequired: boolean }
+/** `POST /admin/auth/login`, and the answer to a password reset */
+export type LoginBody = { email: string; password: string }
+export type LoginResult = { secondFactorRequired: boolean }
 
 /** `POST /admin/auth/second-factor` */
 export type SecondFactorBody = { code: string }
+
+/** `POST /admin/auth/second-factor/resend`, `POST /admin/auth/password/forgot` */
+export type ResendResult = { resendAfterSeconds: number }
+
+export type ForgotPasswordBody = { email: string }
+/** `POST /admin/auth/password/reset` */
+export type ResetPasswordBody = { email: string; code: string; password: string }
+
+/** `GET /admin/invites/:token` */
+export type InviteDetails = { email: string; displayName: string; role: StaffRole; expiresAt: string }
+/** `POST /admin/invites/:token/accept` */
+export type AcceptInviteBody = { password: string }
