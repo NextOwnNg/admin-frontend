@@ -5,7 +5,10 @@ import { page, userEvent } from 'vitest/browser'
 import { openConsole, tabTo, VIEWPORTS } from '@/flows/console'
 import type { StaffRole } from '@/lib/copy/labels'
 import { ROUTE_ROLES, type RouteId } from '@/lib/permissions/permissions'
+import { apiClient } from '@/lib/api/client'
+import type { InviteResult } from '@/lib/api/types/staff'
 import { SCENARIO } from '@/mocks/seed'
+import { signInAs } from '@/test/auth'
 
 /** The flow sizes plus 768, the narrowest the console supports (design §5) */
 const SWEEP_VIEWPORTS = [...VIEWPORTS, { name: '768', width: 768, height: 1024 }] as const
@@ -25,11 +28,27 @@ const PAGES: [RouteId, string][] = [
   ['exceptions', '/exceptions'],
   ['audit', '/audit'],
   ['settings', '/settings'],
+  ['staff', '/staff'],
   ['dashboard', '/dashboard'],
 ]
 
-const CASES: { label: string; path: string; role?: StaffRole }[] = [
+/** An invite for Ada, made by the administrator, who is then signed out; its token kept for the tab as /join does */
+async function pendingInvite() {
+  await signInAs('administrator')
+  const { data } = await apiClient.post<InviteResult>(
+    '/admin/staff/invites',
+    { email: 'ada@nextown.test', displayName: 'Ada Obi', role: 'moderator', reason: 'Accessibility sweep' },
+    { headers: { 'Idempotency-Key': crypto.randomUUID() } },
+  )
+  await apiClient.post('/admin/auth/sign-out')
+  sessionStorage.setItem('nextown-admin-invite', new URLSearchParams(data.mockInviteUrl!.split('?')[1]).get('token')!)
+}
+
+const CASES: { label: string; path: string; role?: StaffRole; setup?: () => Promise<void> }[] = [
   { label: '/sign-in signed out', path: '/sign-in' },
+  { label: '/forgot-password signed out', path: '/forgot-password' },
+  { label: '/join with no link', path: '/join' },
+  { label: '/join with a valid invite', path: '/join', setup: pendingInvite },
   ...PAGES.flatMap(([routeId, path]) =>
     ROUTE_ROLES[routeId].map((role) => {
       // Support agents open a transaction only through their case
@@ -59,8 +78,9 @@ async function expectNoViolations() {
 }
 
 describe.each(SWEEP_VIEWPORTS)('accessibility at $name', (vp) => {
-  it.each(CASES)('$label', async ({ path, role }) => {
+  it.each(CASES)('$label', async ({ path, role, setup }) => {
     await page.viewport(vp.width, vp.height)
+    await setup?.()
     await openConsole(path, role)
     await settled()
     await expectNoViolations()

@@ -4,7 +4,7 @@ import { join, relative } from 'node:path'
 type BuiltFile = { path: string; content: string }
 
 /** Strings that only the mock API or the sample accounts put in a bundle (design §7) */
-const MARKERS = ['[MSW]', 'Sample staff accounts', 'Mock API only', '+2348000000']
+const MARKERS = ['[MSW]', 'Sample staff accounts', 'Mock API only', '@nextown.test', 'Mock only: open the invite link']
 
 /** Every sign that a build carries the mock: the MSW worker file, MSW itself, or the sample accounts. */
 export function findMockLeaks(files: BuiltFile[]): string[] {

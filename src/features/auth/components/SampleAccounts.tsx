@@ -24,7 +24,7 @@ export function SampleAccounts({ onSignIn }: { onSignIn: (role: StaffRole) => Pr
         <h2 id="sample-accounts" className="text-compact font-semibold text-ink">
           Sample staff accounts
         </h2>
-        <p className="text-caption text-muted">Mock API only. Fictional accounts.</p>
+        <p className="text-caption text-muted">Mock API only. Fictional accounts, password Pilot-2026!</p>
       </div>
       <div className="flex flex-col gap-2">
         {STAFF_ROLES.map((role) => (

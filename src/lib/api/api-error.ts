@@ -13,6 +13,8 @@ export type ApiErrorCode =
   | 'OTP_INVALID'
   | 'OTP_EXPIRED'
   | 'NOT_STAFF'
+  | 'INVALID_CREDENTIALS'
+  | 'INVITE_INVALID'
   | 'SERVER_ERROR'
   | 'UNKNOWN'
 

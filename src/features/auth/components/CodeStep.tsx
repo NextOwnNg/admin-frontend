@@ -9,7 +9,7 @@ import { errorMessage } from '@/lib/api/error-message'
 /** Codes whose message belongs on the code field; anything else is the page's banner. */
 const CODE_PROBLEMS = new Set(['OTP_INVALID', 'OTP_EXPIRED', 'VALIDATION_ERROR'])
 
-/** A 6-digit code step, used for the texted code and the administrator's second code. */
+/** A 6-digit code step for a code sent by email: the second factor, and the code in a password reset. */
 export function CodeStep({
   heading,
   intro,
@@ -17,6 +17,7 @@ export function CodeStep({
   submitLabel,
   onSubmit,
   onPageError,
+  resend,
   secondary,
 }: {
   heading: string
@@ -25,6 +26,8 @@ export function CodeStep({
   submitLabel: string
   onSubmit: (code: string) => Promise<void>
   onPageError: (error: unknown) => void
+  /** `ResendCode`, under the field */
+  resend?: React.ReactNode
   secondary?: React.ReactNode
 }) {
   const {
@@ -58,6 +61,7 @@ export function CodeStep({
         error={errors.code?.message}
         {...register('code')}
       />
+      {resend}
       <Button type="submit" isPending={isSubmitting} fullWidth>
         {submitLabel}
       </Button>

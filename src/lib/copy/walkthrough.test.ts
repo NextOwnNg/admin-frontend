@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { apiClient } from '@/lib/api/client'
 import type { CaseDetail } from '@/lib/api/types/cases'
+import { SAMPLE_PASSWORD, STAFF_EMAILS } from '@/mocks/sample-accounts'
 import { signInAs } from '@/test/auth'
 
 const walkthrough = () => readFileSync('docs/operator-walkthrough.md', 'utf8')
@@ -39,6 +40,15 @@ describe('operator walkthrough (design §8)', () => {
     // Comments are checked through the cases that hold them
     for (const id of ids.filter((i) => i.startsWith('C-'))) if (!caseContent.includes(id)) missing.push(id)
     expect(missing).toEqual([])
+  })
+
+  it('signs in only with the sample emails, and names no phone sign-in (design 2026-11-21)', () => {
+    const allowed = new Set([...Object.values(STAFF_EMAILS), 'ada@nextown.test'])
+    const emails = [...new Set(walkthrough().match(/[a-z0-9.]+@nextown\.test/g))]
+    expect(emails.length).toBeGreaterThan(3)
+    expect(emails.filter((e) => !allowed.has(e))).toEqual([])
+    expect(walkthrough()).not.toMatch(/0800 000 01/)
+    expect(walkthrough()).toContain(SAMPLE_PASSWORD)
   })
 
   it('covers every threat test', () => {

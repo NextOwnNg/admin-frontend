@@ -9,11 +9,11 @@ describe('production bundle check (design §7)', () => {
   })
 
   it('flags MSW and sample-account code', () => {
-    for (const marker of ['[MSW]', 'Sample staff accounts', '+2348000000101']) {
+    for (const marker of ['[MSW]', 'Sample staff accounts', 'ngozi@nextown.test', 'Mock only: open the invite link']) {
       const leaks = findMockLeaks([{ path: 'assets/index-A.js', content: `x;${marker};y` }])
       expect(leaks).toHaveLength(1)
       expect(leaks[0]).toContain('assets/index-A.js')
-      expect(leaks[0]).toContain(marker.startsWith('+234') ? '+2348000000' : marker)
+      expect(leaks[0]).toContain(marker.endsWith('@nextown.test') ? '@nextown.test' : marker)
     }
   })
 

@@ -1,4 +1,5 @@
 import { toApiError, type ApiErrorCode } from '@/lib/api/api-error'
+import { AUTH_COPY } from '@/lib/copy/auth'
 
 // The yes/no checks live apart so first-load code (session, query retries) doesn't carry the wording
 export { isCaseResolved, isConflict, isForbidden, isNotFound, isRetryable, isSignedOut } from '@/lib/api/error-checks'
@@ -10,9 +11,11 @@ export { isCaseResolved, isConflict, isForbidden, isNotFound, isRetryable, isSig
 
 /** Codes that mean something was wrong with what the person entered: the message is the whole story. */
 const inputMessages: Partial<Record<ApiErrorCode, string>> = {
-  OTP_INVALID: "That code doesn't match. Check the text message and try again.",
-  OTP_EXPIRED: 'That code has expired. Send a new code and use the latest one.',
-  NOT_STAFF: "This number can't sign in here.",
+  OTP_INVALID: AUTH_COPY.codeInvalid,
+  OTP_EXPIRED: AUTH_COPY.codeExpired,
+  NOT_STAFF: AUTH_COPY.notStaff,
+  INVALID_CREDENTIALS: AUTH_COPY.invalidCredentials,
+  INVITE_INVALID: AUTH_COPY.inviteInvalid,
 }
 
 /** The server's message for each field it rejected, or undefined if it named none. */

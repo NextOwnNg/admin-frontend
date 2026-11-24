@@ -11,6 +11,8 @@ import { recordKindLabel, type RouteId } from '@/lib/permissions/permissions'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { RouteErrorPage } from '@/pages/RouteErrorPage'
 import { TransactionRecordRedirect } from '@/pages/records/TransactionRecordRedirect'
+import { ForgotPasswordPage } from '@/pages/ForgotPasswordPage'
+import { JoinPage } from '@/pages/JoinPage'
 import { SignInPage } from '@/pages/SignInPage'
 
 /** Wraps a route in its role check (PRD §5). The API still decides; this keeps the screen honest. */
@@ -32,8 +34,18 @@ export const routes: RouteObject[] = [
     children: [
       {
         element: <RedirectIfStaff />,
-        children: [{ element: <AuthLayout />, children: [{ path: 'sign-in', element: <SignInPage /> }] }],
+        children: [
+          {
+            element: <AuthLayout />,
+            children: [
+              { path: 'sign-in', element: <SignInPage /> },
+              { path: 'forgot-password', element: <ForgotPasswordPage /> },
+            ],
+          },
+        ],
       },
+      // Public: an invitee may arrive while someone else is signed in, so not behind RedirectIfStaff
+      { element: <AuthLayout />, children: [{ path: 'join', element: <JoinPage /> }] },
       {
         element: <RequireStaff />,
         children: [
@@ -120,6 +132,11 @@ export const routes: RouteObject[] = [
                 path: 'settings',
                 handle: crumb('Settings'),
                 lazy: () => import('@/pages/SettingsPage').then((m) => ({ Component: m.SettingsPage })),
+              }),
+              guarded('staff', {
+                path: 'staff',
+                handle: crumb('Staff'),
+                lazy: () => import('@/pages/StaffPage').then((m) => ({ Component: m.StaffPage })),
               }),
               guarded('dashboard', {
                 path: 'dashboard',

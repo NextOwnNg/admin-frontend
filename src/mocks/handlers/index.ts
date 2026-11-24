@@ -9,6 +9,7 @@ import { recordHandlers } from '@/mocks/handlers/records'
 import { referenceHandlers } from '@/mocks/handlers/reference'
 import { searchHandlers } from '@/mocks/handlers/search'
 import { settingsHandlers } from '@/mocks/handlers/settings'
+import { staffAdminHandlers } from '@/mocks/handlers/staff-admin'
 import { transactionReadHandlers } from '@/mocks/handlers/transactions'
 import { writeHandlers } from '@/mocks/handlers/writes'
 
@@ -23,6 +24,7 @@ export const handlers: RequestHandler[] = [
   ...exceptionHandlers,
   ...searchHandlers,
   ...settingsHandlers,
+  ...staffAdminHandlers,
   ...dashboardHandlers,
   ...writeHandlers,
   ...clientErrorHandlers,

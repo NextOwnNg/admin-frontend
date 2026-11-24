@@ -9,10 +9,17 @@ export async function idempotent(request: Request, recordId: string, write: () =
   const key = request.headers.get('Idempotency-Key')
   const replies = idempotentReplies()
   const earlier = key ? replies.get(key) : undefined
-  if (earlier) return HttpResponse.json(earlier.body as object, { status: earlier.status })
+  if (earlier) {
+    return earlier.body === null
+      ? new HttpResponse(null, { status: earlier.status })
+      : HttpResponse.json(earlier.body as object, { status: earlier.status })
+  }
 
   const response = await write()
-  if (key && response.ok) replies.set(key, { status: response.status, body: await response.clone().json() })
+  // A 204 has no body to remember
+  if (key && response.ok) {
+    replies.set(key, { status: response.status, body: response.status === 204 ? null : await response.clone().json() })
+  }
   if (response.ok && droppedAnswers().delete(recordId)) return HttpResponse.error()
   return response
 }
