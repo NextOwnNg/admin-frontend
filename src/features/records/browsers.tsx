@@ -6,7 +6,7 @@ import { TransactionStatusBadge } from '@/components/domain/TransactionStatusBad
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { RecordLink } from '@/features/records/components/RecordLink'
 import { commaList, CURSOR } from '@/hooks/useUrlFilters'
-import { useSettings } from '@/features/settings/api/useSettings'
+import { PLACE_NAME, useAreaOptions, useCategoryOptions } from '@/features/records/filter-options'
 import { useReasonCodes } from '@/lib/api/reference'
 import { ReasonText } from '@/features/records/components/ReasonText'
 import type { RecordKind, RecordRowFor } from '@/lib/api/types/records'
@@ -60,29 +60,6 @@ const idLink = (kind: RecordKind, value: string) => (
   </span>
 )
 const when = (iso: string) => <span className="tabular-nums">{formatWATDate(iso)}</span>
-
-/** Active areas of active cities, from the pilot settings */
-function useAreaOptions(): FilterOption[] {
-  const settings = useSettings()
-  return (settings.data?.locations ?? [])
-    .filter((c) => c.active)
-    .flatMap((c) => c.areas.filter((a) => a.active).map((a) => a.name))
-    .sort((a, b) => a.localeCompare(b))
-    .map((name) => ({ value: name, label: name }))
-}
-
-/** Active categories, from the pilot settings */
-function useCategoryOptions(): FilterOption[] {
-  const settings = useSettings()
-  return (settings.data?.categories ?? [])
-    .filter((c) => c.active)
-    .map((c) => c.name)
-    .sort((a, b) => a.localeCompare(b))
-    .map((name) => ({ value: name, label: name }))
-}
-
-/** Any name the settings accept (2 to 60 characters); control characters never are */
-const PLACE_NAME = /^[^\p{Cc}]{2,60}$/u
 
 function useReasonOptions(): FilterOption[] {
   const reasons = useReasonCodes()

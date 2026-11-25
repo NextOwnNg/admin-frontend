@@ -7,11 +7,14 @@ import { MyCasesTable } from '@/features/overview/components/MyCasesTable'
 import { SeverityCounts } from '@/features/overview/components/SeverityCounts'
 import { isForbidden } from '@/lib/api/error-message'
 import { REDACTION } from '@/lib/copy/status'
-import { formatWAT } from '@/lib/time/time'
+import { REVIEW_COPY } from '@/lib/copy/review'
+import { formatWAT, formatWait } from '@/lib/time/time'
+import { useNow } from '@/hooks/useNow'
 
 /** Where the day starts (design §4.1): my cases, open work by severity, what's overdue. */
 export function OverviewPage() {
   const overview = useOverview()
+  const now = useNow()
   const data = overview.data
   const status = overview.isPending
     ? 'pending'
@@ -78,6 +81,30 @@ export function OverviewPage() {
                     ))}
                   </ul>
                 )}
+              </section>
+            )}
+
+            {data?.listingReviews && (
+              <section
+                aria-labelledby="listing-reviews"
+                className="flex flex-col gap-3 rounded-card border border-border bg-paper p-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h2 id="listing-reviews" className="text-h3 text-ink">
+                    Listings waiting for review
+                  </h2>
+                  <Link to="/reviews" className="text-compact font-semibold text-action underline underline-offset-2">
+                    Review listings
+                  </Link>
+                </div>
+                <p className="text-body text-ink tabular-nums">
+                  {REVIEW_COPY.subtitle(
+                    data.listingReviews.waiting,
+                    data.listingReviews.oldestSubmittedAt
+                      ? formatWait(data.listingReviews.oldestSubmittedAt, now)
+                      : null,
+                  )}
+                </p>
               </section>
             )}
           </>

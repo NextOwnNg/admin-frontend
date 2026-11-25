@@ -62,6 +62,11 @@ export const routes: RouteObject[] = [
                 handle: crumb('Reports'),
                 lazy: () => import('@/pages/ReportsQueuePage').then((m) => ({ Component: m.ReportsQueuePage })),
               }),
+              guarded('reviews', {
+                path: 'reviews',
+                handle: crumb('Listing review'),
+                lazy: () => import('@/pages/ListingReviewsPage').then((m) => ({ Component: m.ListingReviewsPage })),
+              }),
               guarded('case', {
                 path: 'cases/:id',
                 handle: crumb((p) => `Case ${p.id ?? ''}`),

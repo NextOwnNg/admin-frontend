@@ -9,11 +9,19 @@ describe('production bundle check (design §7)', () => {
   })
 
   it('flags MSW and sample-account code', () => {
-    for (const marker of ['[MSW]', 'Sample staff accounts', 'ngozi@nextown.test', 'Mock only: open the invite link']) {
+    for (const marker of [
+      '[MSW]',
+      'Sample staff accounts',
+      'ngozi@nextown.test',
+      'Mock only: open the invite link',
+      'Mock photo 1 of 3',
+    ]) {
       const leaks = findMockLeaks([{ path: 'assets/index-A.js', content: `x;${marker};y` }])
       expect(leaks).toHaveLength(1)
       expect(leaks[0]).toContain('assets/index-A.js')
-      expect(leaks[0]).toContain(marker.endsWith('@nextown.test') ? '@nextown.test' : marker)
+      expect(leaks[0]).toContain(
+        marker.endsWith('@nextown.test') ? '@nextown.test' : marker.startsWith('Mock photo') ? 'Mock photo' : marker,
+      )
     }
   })
 

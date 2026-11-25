@@ -4,9 +4,14 @@ import { Timeline } from '@/components/data/Timeline'
 import { MoneyText } from '@/components/domain/MoneyText'
 import { Section } from '@/components/ui/Section'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ListingPhotos } from '@/features/records/components/ListingPhotos'
 import { RecordDetailLayout } from '@/features/records/components/RecordDetailLayout'
 import { RecordLink } from '@/features/records/components/RecordLink'
 import { OfferList, ReportList } from '@/features/records/components/RecordLists'
+import { useRefreshBeforeExpiry } from '@/features/records/hooks/useRefreshBeforeExpiry'
+import { recordQueryKey } from '@/features/records/api/records-api'
+import { ReviewPanel } from '@/features/reviews/components/ReviewPanel'
+import { useSettings } from '@/features/settings/api/useSettings'
 import type { ListingDetail as ListingDetailData } from '@/lib/api/types/records'
 import { FEED_STATUS, LISTING_MODE, LISTING_STATUS } from '@/lib/copy/records'
 import { REDACTION } from '@/lib/copy/status'
@@ -22,6 +27,12 @@ function moderatedLabel(l: ListingDetailData): string | null {
 
 /** A listing: what is asked, its state over time, and the offers and posts about it */
 export function ListingDetail({ listing }: { listing: ListingDetailData }) {
+  const settings = useSettings()
+  useRefreshBeforeExpiry(
+    recordQueryKey('listings', listing.id),
+    listing.photos.map((p) => p.expiresAt),
+  )
+  const { condition, defects, repairs, ownershipDeclared } = listing.itemCondition
   return (
     <RecordDetailLayout
       kind="listings"
@@ -40,6 +51,7 @@ export function ListingDetail({ listing }: { listing: ListingDetailData }) {
         </span>
       }
     >
+      {listing.review && <ReviewPanel listing={listing} />}
       <Section title="Details">
         <KeyValueList
           items={[
@@ -51,6 +63,10 @@ export function ListingDetail({ listing }: { listing: ListingDetailData }) {
             },
             { term: 'Accepts', value: listing.modes.map((m) => LISTING_MODE[m]).join(', ') },
             ...(listing.desiredItems ? [{ term: 'Would swap for', value: listing.desiredItems }] : []),
+            { term: 'Condition', value: condition },
+            { term: 'Defects', value: defects ?? 'None declared' },
+            { term: 'Repair history', value: repairs ?? 'None declared' },
+            { term: 'Owner declared lawful ownership', value: ownershipDeclared ? 'Yes' : 'No' },
             { term: 'Category', value: listing.category },
             { term: 'Area', value: listing.area },
             ...(listing.urgentUntil
@@ -79,6 +95,12 @@ export function ListingDetail({ listing }: { listing: ListingDetailData }) {
           </blockquote>
         )}
       </Section>
+      <ListingPhotos
+        photos={listing.photos}
+        title={listing.title}
+        minimum={settings.data?.photoLimits.min ?? null}
+        moderatedLabel={moderatedLabel(listing)}
+      />
       <Section title="Status history">
         <Timeline label="Status history">
           {[...listing.statusHistory].reverse().map((h) => (

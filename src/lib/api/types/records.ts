@@ -1,5 +1,6 @@
 import type { AuditEntry } from '@/lib/api/types/audit'
 import type { CaseSummary, Redaction } from '@/lib/api/types/cases'
+import type { ItemCondition, ListingPhoto, ListingReview } from '@/lib/api/types/reviews'
 import type { TargetType } from '@/lib/api/types/reference'
 import type { OfferVersion, Reservation } from '@/lib/api/types/transactions'
 import type { TransactionFlag, TransactionStatus } from '@/lib/copy/status'
@@ -136,6 +137,12 @@ export type ListingDetail = ListingRow &
     offers: OfferRow[]
     feedPosts: FeedRow[]
     reports: ReportRow[]
+    /** Empty when the listing is hidden or removed */
+    photos: ListingPhoto[]
+    itemCondition: ItemCondition
+    version: number
+    /** Null when the listing never went through review */
+    review: ListingReview | null
   }
 
 export type OfferDetail = OfferRow & DetailBase & { versions: OfferVersion[]; transaction: RecordRef | null }

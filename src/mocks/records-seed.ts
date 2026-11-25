@@ -1,7 +1,9 @@
 import type { Redaction } from '@/lib/api/types/cases'
 import type { TargetType } from '@/lib/api/types/reference'
 import type { FeedStatus, ListingMode, ListingStatus, ModerationState, OfferStatus } from '@/lib/api/types/records'
+import type { PreviousRejection, ReviewDecision, ReviewOverturn } from '@/lib/api/types/reviews'
 import type { OfferTerms, OfferVersion } from '@/lib/api/types/transactions'
+import { REASON_CODES } from '@/mocks/fixtures/reason-codes'
 import {
   MEMBERS,
   DUPLICATE_LISTING,
@@ -62,6 +64,20 @@ export type ListingRec = {
   publishedAt: string | null
   statusHistory: { status: ListingStatus; at: string }[]
   createdAt: string
+  /** Bumped by every review write (design 2026-11-24 §7) */
+  version: number
+  photoCount: number
+  /** When it last went into review; null when it never did */
+  submittedAt: string | null
+  review: ReviewState | null
+}
+/** One review round: the decision and at most one overturn (design 2026-11-24 §6) */
+export type ReviewState = {
+  previousRejection: PreviousRejection | null
+  decision: ReviewDecision | null
+  overturn: ReviewOverturn | null
+  /** The seller changed the rejected draft since, so the rejection can't be overturned */
+  changedSince: boolean
 }
 export type OfferRec = {
   id: string
@@ -213,7 +229,19 @@ const EXTRA_LISTINGS: ExtraListing[] = [
   ['L-5216', 'u-ifeoma', 'Canon printer', 'ACTIVE', 5_000_000, ['CASH'], null, 'clear'],
   ['L-5217', 'u-kunle', 'Polo shirts, bundle of five', 'ACTIVE', 2_000_000, ['CASH'], null, 'clear'],
   ['L-5218', 'u-tobi', 'AirPods Pro', 'ACTIVE', 12_000_000, ['CASH'], null, 'hidden'],
+  // Listing review (design 2026-11-24 §8)
+  ['L-5230', 'u-ada', 'Samsung 43-inch TV', 'PENDING_REVIEW', 18_000_000, ['CASH'], null, 'clear'],
+  ['L-5231', 'u-kunle', 'Office desk', 'PENDING_REVIEW', 6_500_000, ['CASH'], null, 'clear'],
+  ['L-5232', 'u-ifeoma', 'Blender, 1.5 litre', 'PENDING_REVIEW', 2_800_000, ['CASH'], null, 'clear'],
+  ['L-5233', 'u-halima', 'Wristwatch', 'PENDING_REVIEW', null, ['SWAP'], null, 'clear'],
+  ['L-5234', 'u-segun', 'Electric kettle', 'PENDING_REVIEW', 1_500_000, ['CASH'], null, 'clear'],
+  ['L-5235', 'u-zainab', 'Standing fan', 'ACTIVE', 3_500_000, ['CASH'], null, 'clear'],
+  ['L-5236', 'u-emeka', 'Office chair', 'RESERVED', 4_000_000, ['CASH'], null, 'clear'],
+  ['L-5237', 'u-chidi', 'Toaster', 'DRAFT', 1_200_000, ['CASH'], null, 'clear'],
 ]
+
+const REVIEWER = 'Tunde Bakare'
+const label = (code: string) => REASON_CODES.find((c) => c.code === code)!.label
 
 /** How the latest version of an offer ended, or `pending` while it waits for a reply */
 const LAST_VERSION_STATE: Record<OfferStatus, OfferVersion['state']> = {
@@ -273,6 +301,10 @@ export function buildRecords(now: number, base: { cases: CaseRecord[]; transacti
       area: AREAS[rest.sellerId] ?? 'Yaba',
       desiredItems: rest.modes.includes('SWAP') || rest.modes.includes('SWAP_PLUS_CASH') ? 'A phone or laptop' : null,
       publishedAt: published ? createdAt : null,
+      version: 1,
+      photoCount: 3,
+      submittedAt: null,
+      review: null,
       statusHistory: [
         ...(published ? [{ status: 'ACTIVE' as const, at: createdAt }] : []),
         ...(rest.status !== 'ACTIVE' ? [{ status: rest.status, at: ago(Math.max(1, minutesAgo - 600)) }] : []),
@@ -434,6 +466,8 @@ export function buildRecords(now: number, base: { cases: CaseRecord[]; transacti
     })
   }
 
+  seedReviews(listings, ago)
+
   // Offers still in negotiation, or ended without a deal
   const itemOf = (listingId: string) => items.find((i) => i.id === listings.find((l) => l.id === listingId)!.itemId)!
   const sideOf = (memberId: string, participant: 'A' | 'B', itemIds: string[]) => ({
@@ -478,6 +512,9 @@ export function buildRecords(now: number, base: { cases: CaseRecord[]; transacti
     ['O-6210', 'u-tobi', 'L-5213', 'WITHDRAWN', [2_000_000], null, 700],
     ['O-6211', 'u-emeka', 'L-5212', 'EXPIRED', [15_000_000], null, 9000],
     ['O-6212', 'u-halima', 'L-5211', 'PENDING', [5_500_000], null, 45],
+    // Listing review: an open offer an overturned approval ends, and an accepted one that blocks overturning
+    ['O-6151', 'u-ada', 'L-5235', 'PENDING', [3_000_000], null, 60],
+    ['O-6150', 'u-bisi', 'L-5236', 'ACCEPTED', [4_000_000], null, 100],
   ]
   for (const [id, initiatorId, listingId, status, cash, offeredItemId, minutesAgo] of openOffers) {
     const recipientId = listings.find((l) => l.id === listingId)!.sellerId
@@ -609,4 +646,69 @@ export function buildRecords(now: number, base: { cases: CaseRecord[]; transacti
   }
 
   return { members, items, listings, offers, feed, reports } satisfies RecordsState
+}
+
+/** Review state for the listing review seed (design 2026-11-24 §8); times are minutes before now */
+function seedReviews(listings: ListingRec[], ago: (minutes: number) => string) {
+  const set = (id: string, patch: Partial<ListingRec>) =>
+    Object.assign(
+      listings.find((l) => l.id === id)!,
+      patch,
+    )
+  const pending = (id: string, minutes: number, photoCount = 3, previousRejection: PreviousRejection | null = null) =>
+    set(id, {
+      photoCount,
+      submittedAt: ago(minutes),
+      statusHistory: [
+        ...(previousRejection
+          ? [
+              { status: 'PENDING_REVIEW' as const, at: ago(minutes + 1500) },
+              { status: 'DRAFT' as const, at: previousRejection.at },
+            ]
+          : []),
+        { status: 'PENDING_REVIEW', at: ago(minutes) },
+      ],
+      review: { previousRejection, decision: null, overturn: null, changedSince: false },
+    })
+  const decision = (
+    kind: ReviewDecision['decision'],
+    minutes: number,
+    reasonCode: string | null = null,
+    sellerMessage: string | null = null,
+  ): ReviewDecision => ({
+    decision: kind,
+    by: REVIEWER,
+    at: ago(minutes),
+    reasonCode,
+    reasonLabel: reasonCode ? label(reasonCode) : null,
+    sellerMessage,
+    note: null,
+  })
+
+  pending('L-5205', 2 * 24 * 60 + 30)
+  pending('L-5234', 24 * 60 + 30)
+  pending('L-5230', 6 * 60 + 10, 0)
+  pending('L-5231', 3 * 60 + 10, 4)
+  pending('L-5232', 40, 2, {
+    at: ago(24 * 60),
+    reasonCode: 'REJECT_PHOTOS',
+    reasonLabel: label('REJECT_PHOTOS'),
+    sellerMessage: 'Please add a photo of the base.',
+  })
+  pending('L-5233', 5)
+
+  const decided = (id: string, status: ListingStatus, submitted: number, review: ReviewDecision) =>
+    set(id, {
+      submittedAt: ago(submitted),
+      publishedAt: review.decision === 'approved' ? review.at : null,
+      statusHistory: [
+        { status: 'PENDING_REVIEW', at: ago(submitted) },
+        { status: review.decision === 'approved' ? 'ACTIVE' : 'DRAFT', at: review.at },
+        ...(status === 'RESERVED' ? [{ status, at: ago(100) }] : []),
+      ],
+      review: { previousRejection: null, decision: review, overturn: null, changedSince: false },
+    })
+  decided('L-5235', 'ACTIVE', 200, decision('approved', 120))
+  decided('L-5236', 'RESERVED', 600, decision('approved', 500))
+  decided('L-5237', 'DRAFT', 90, decision('rejected', 60, 'REJECT_DEFECTS', 'Please describe the scratch on the side.'))
 }

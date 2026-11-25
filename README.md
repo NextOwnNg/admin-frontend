@@ -66,6 +66,9 @@ Scenario IDs are exported as `SCENARIO`, `TX` (`src/mocks/seed.ts`) and `REC` (`
 | Listing hidden by moderation / removed | `/records/listings/L-5218` / `/records/listings/L-5214` |
 | Offer with three versions, still open | `/records/offers/O-6201` |
 | Feed post removed by its author; post with a removed comment | `/records/feed/F-910`; `/records/feed/F-904` |
+| Listings waiting for review, oldest first | `/reviews` (moderator or administrator): six listings, including a resubmission (`L-5232`) and one with no photos (`L-5230`) |
+| A listing to approve or reject | `/records/listings/L-5205` |
+| Decisions an administrator can overturn, and one they can't | `L-5235` (approved), `L-5237` (rejected); `L-5236` has an accepted offer |
 
 The top-bar search (press `/`) finds cases, transactions and records by ID or name. Support agents only find their own cases and those cases' transactions.
 
@@ -108,6 +111,7 @@ The mock answers these one way. The real API may choose differently; each is a s
 | Sign-in and second factor | Email and password (`POST /admin/auth/login`). The API decides when an emailed code is needed (`secondFactorRequired`); the mock asks administrators. Codes are 6 digits and last 10 minutes; at most 3 are sent in 10 minutes, and 5 wrong passwords lock an email for 10 minutes. Resend waits come from the API (`resendAfterSeconds`); the first wait after sign-in is assumed to be 60 s |
 | Password reset | `POST /admin/auth/password/forgot` answers the same for any email. A successful reset signs the person in, and an administrator still enters their emailed code |
 | Invites | Administrators only. A link with a single-use token that lasts 7 days (`/join?token=…`); resending replaces the link and revoking kills it. One role per person. Accepting sets a password and signs in **without** a code, because the link proves the email: should the real API also ask for one? The console removes the token from the address and keeps it for the tab until it's used |
+| Listing review | `GET /admin/listing-reviews` (oldest first), `POST /admin/listings/:id/review` and `/review/overturn`, versioned with `Idempotency-Key`; the listing read gains `photos`, `itemCondition`, `version` and `review`. Rejection reasons are reason codes of kind `rejection` (draft list, for the PM to confirm). Open for the backend: which listings are held for review; how photos are signed and how long links last (the mock: 15 minutes); what the seller's notification contains (the mock assumes the reason label and the message); and what happens to open offers when an approval is overturned (the mock marks them `EXPIRED`). A rejected listing goes back to the seller as a **draft**, which changes the product PRD's "REMOVED with reason" |
 | Client error reports | `POST /admin/client-errors` with the error name, a scrubbed message (no addresses, emails or long numbers, 200 characters at most), the route pattern (`/cases/:id`), the request ID, build version and environment. At most 10 a minute. The mock accepts reports from anyone, signed in or not |
 
 ## Hosting notes

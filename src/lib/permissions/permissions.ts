@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   ChartColumn,
+  ClipboardCheck,
   ClockAlert,
   Flag,
   History,
@@ -21,6 +22,7 @@ import type { StaffRole } from '@/lib/copy/labels'
 export type RouteId =
   | 'overview'
   | 'reports'
+  | 'reviews'
   | 'case'
   | 'transaction'
   | 'records'
@@ -35,6 +37,7 @@ const ALL_STAFF: StaffRole[] = ['support_agent', 'moderator', 'administrator']
 export const ROUTE_ROLES: Record<RouteId, StaffRole[]> = {
   overview: ALL_STAFF,
   reports: ALL_STAFF, // support agents see assigned reports only; the API filters
+  reviews: ['moderator', 'administrator'], // listing review (design 2026-11-24 §5.1)
   case: ALL_STAFF, // the API decides who is assigned
   transaction: ALL_STAFF,
   records: ['moderator', 'administrator'],
@@ -54,6 +57,7 @@ export type NavItem = { id: string; label: string; to: string; icon: LucideIcon;
 export const NAV_ITEMS: NavItem[] = [
   { id: 'overview', label: 'Overview', to: '/', icon: House, routeId: 'overview' },
   { id: 'reports', label: 'Reports', to: '/reports', icon: Flag, routeId: 'reports' },
+  { id: 'reviews', label: 'Listing review', to: '/reviews', icon: ClipboardCheck, routeId: 'reviews' },
   { id: 'members', label: 'Members', to: '/records/users', icon: Users, routeId: 'records' },
   { id: 'listings', label: 'Listings', to: '/records/listings', icon: Tag, routeId: 'records' },
   { id: 'transactions', label: 'Transactions', to: '/records/transactions', icon: ArrowLeftRight, routeId: 'records' },

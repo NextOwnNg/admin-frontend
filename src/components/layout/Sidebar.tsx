@@ -1,6 +1,7 @@
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { NavLink } from 'react-router'
 import { AdminLogo } from '@/components/brand/AdminLogo'
+import { useWaitingCount } from '@/features/reviews/api/useReviews'
 import { cx } from '@/lib/cx'
 import { navItemsFor } from '@/lib/permissions/permissions'
 import { useSessionStore } from '@/stores/session'
@@ -15,6 +16,8 @@ export function Sidebar() {
   const collapsed = useUiStore((s) => s.sidebarCollapsed)
   const toggle = useUiStore((s) => s.toggleSidebar)
   const ToggleIcon = collapsed ? PanelLeftOpen : PanelLeftClose
+  // Listing review shows how many wait (design 2026-11-24 §5.1); nothing when the count can't load
+  const waiting = useWaitingCount()
 
   return (
     <aside
@@ -45,7 +48,22 @@ export function Sidebar() {
                 }
               >
                 <Icon aria-hidden className="size-5 shrink-0" strokeWidth={1.75} />
-                <span className={collapsed ? 'sr-only' : 'truncate'}>{label}</span>
+                <span className={collapsed ? 'sr-only' : 'truncate'}>
+                  {label}
+                  {id === 'reviews' && waiting ? <span className="sr-only">, {waiting} waiting</span> : null}
+                </span>
+                {id === 'reviews' && waiting ? (
+                  collapsed ? (
+                    <span aria-hidden className="absolute top-2 right-2 size-2 rounded-full bg-mint" />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="ml-auto rounded-full bg-mint px-2 text-caption font-semibold text-ink tabular-nums"
+                    >
+                      {waiting}
+                    </span>
+                  )
+                ) : null}
                 {collapsed && (
                   <span
                     aria-hidden

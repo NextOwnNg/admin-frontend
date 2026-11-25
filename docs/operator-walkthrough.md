@@ -80,6 +80,19 @@ To change role, choose **Sign out** at the top right and sign in again.
    - Choose **Close report**, then the outcome "No violation".
    - **Expected:** "Not a duplicate" is among the reasons. It isn't offered on ordinary reports.
 
+6. **Review a listing.** Do this without reloading the page.
+   - Open **Listing review** in the sidebar.
+   - **Expected:** "6 waiting · oldest waiting 2 d", the Xbox Series S first, and the blender marked "Resubmitted · rejected for: Photos missing or unclear".
+   - Choose **Actions for L-5205**, then **Open listing**.
+   - **Expected:** "Waiting for review since …", the listing's photos (each opens larger), and its condition and defects under Details.
+   - Choose **Approve**, then **Approve** in the confirmation.
+   - **Expected:** "Approved. L-5205 is live.", the listing now Active, and **Review next listing**.
+   - Choose **Review next listing**, then **Reject**. Pick **Photos missing or unclear** and type `Add a photo of the back.`
+   - **Expected:** "The seller will see: Photos missing or unclear. Add a photo of the back."
+   - Choose **Continue**, then **Reject**.
+   - **Expected:** "Rejected. L-5234 is back with the seller as a draft." The reason **Something else** won't continue without a message.
+   - Open `L-5235`. **Expected:** "Approved by Tunde Bakare …", and no way for a moderator to overturn it.
+
 ## 3. Administrator (Ngozi Adeyemi)
 
 1. **Sign in as the administrator.**
@@ -144,6 +157,16 @@ To change role, choose **Sign out** at the top right and sign in again.
    - Switch a section to **Table**.
    - **Expected:** the same figures as a table.
 
+9. **Overturn a decision.**
+   - Open `/records/listings/L-5235` (approved by Tunde Bakare).
+   - Choose **Overturn approval**, the reason **Price or description is misleading**, then **Continue**.
+   - **Expected:** the confirmation says it's taken down, goes back to the seller as a draft, and open offers on it end.
+   - Confirm with **Overturn**.
+   - **Expected:** "Decision overturned.", "Overturned by Ngozi Adeyemi …", and "Already overturned once."
+   - Open `L-5236`. **Expected:** "Can't be overturned: an offer on it was accepted." and no button.
+   - Open `L-5237` (rejected) and overturn it with **Rejected in error**. **Expected:** the listing is Active.
+   - In **Moderation log**, filter by **Review overturned**. **Expected:** "Ngozi Adeyemi overturned the review of Standing fan".
+
 ## 4. What must not be possible
 
 | Test | How to try it | Expected |
@@ -157,6 +180,7 @@ To change role, choose **Sign out** at the top right and sign in again.
 
 Also check:
 - **A support agent can't open a page for another role.** Signed in as the support agent, type `/settings` in the address bar. **Expected:** "You don't have permission to view this page".
+- **A support agent can't review listings.** Signed in as the support agent, type `/reviews`. **Expected:** the permission page, and no **Listing review** in the sidebar.
 - **A moderator can't open the log.** Signed in as the moderator, type `/audit`. **Expected:** the same permission page.
 
 ## Screen-reader checklist
