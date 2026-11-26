@@ -28,7 +28,9 @@ import type { SearchResponse } from '@/lib/api/types/search'
 import { recordHref } from '@/lib/copy/records'
 import { ACTIVE_CASE_STATUSES, REDACTION } from '@/lib/copy/status'
 import { auditDb, page } from '@/mocks/db/audit'
+import { reviewOf } from '@/mocks/db/review-state'
 import { store } from '@/mocks/db/store'
+import { placeholderPhotos } from '@/mocks/fixtures/listing-photos'
 import type { FeedRec, ItemRec, ListingRec, MemberRec, OfferRec, ReportRec } from '@/mocks/records-seed'
 import type { CaseRecord, TransactionRecord } from '@/mocks/seed'
 
@@ -122,7 +124,7 @@ const itemRow = (i: ItemRec): ItemRow => ({
   availability: availability(i),
 })
 
-const listingRow = (l: ListingRec): ListingRow => ({
+export const listingRow = (l: ListingRec): ListingRow => ({
   id: l.id,
   title: l.title,
   seller: memberRef(l.sellerId),
@@ -353,8 +355,10 @@ function listingDetail(l: ListingRec): ListingDetail {
   const posts = r.feed.filter((f) => f.listingId === l.id)
   const txIds = offers.flatMap((o) => (o.transactionId ? [o.transactionId] : []))
   const redaction = liveRedaction(l.id, l.redaction)
+  const row = listingRow(l)
+  const item = r.items.find((i) => i.id === l.itemId)
   return {
-    ...listingRow(l),
+    ...row,
     item: itemRef(l.itemId),
     desiredItems: l.desiredItems,
     description: redaction ? null : l.description,
@@ -364,6 +368,16 @@ function listingDetail(l: ListingRec): ListingDetail {
     offers: offers.map(offerRow),
     feedPosts: posts.map(feedRow),
     reports: r.reports.filter((rep) => rep.target.kind === 'listings' && rep.target.id === l.id).map(reportRow),
+    // Moderated listings show their label, never their photos (design 2026-11-24 §5.2)
+    photos: row.moderation === 'clear' && !redaction ? placeholderPhotos(l.id, l.title, l.photoCount, Date.now()) : [],
+    itemCondition: {
+      condition: item?.condition ?? '',
+      defects: item?.defects ?? null,
+      repairs: item?.repairs ?? null,
+      ownershipDeclared: item?.ownershipDeclared ?? false,
+    },
+    version: l.version,
+    review: reviewOf(l),
     links: [
       ...group('Seller', [memberRef(l.sellerId)]),
       ...group('Item', [itemRef(l.itemId)]),

@@ -5,6 +5,7 @@ import {
   dueText,
   formatUTC,
   formatWAT,
+  formatWait,
   timeAgo,
   watDayEnd,
   watDayStart,
@@ -81,5 +82,17 @@ describe('WAT calendar days (Phase D dashboard)', () => {
     expect(addDays('2026-10-31', 1)).toBe('2026-11-01')
     expect(daysBetween('2026-11-01', '2026-11-01')).toBe(1)
     expect(daysBetween('2025-11-02', '2026-11-02')).toBe(366)
+  })
+})
+
+describe('waiting time (listing review)', () => {
+  it('formats a wait', () => {
+    const now = at('2026-11-24T12:00:00Z')
+    const ago = (ms: number) => new Date(now - ms).toISOString()
+    expect(formatWait(ago(30_000), now)).toBe('Just now')
+    expect(formatWait(ago(45 * 60_000), now)).toBe('45 min')
+    expect(formatWait(ago(3 * 3600_000), now)).toBe('3 h')
+    expect(formatWait(ago(47 * 3600_000), now)).toBe('47 h')
+    expect(formatWait(ago(50 * 3600_000), now)).toBe('2 d')
   })
 })

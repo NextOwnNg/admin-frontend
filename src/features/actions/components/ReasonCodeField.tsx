@@ -2,7 +2,7 @@ import type { SelectHTMLAttributes } from 'react'
 import { SelectField } from '@/components/ui/SelectField'
 import { reasonCodeLabel, useReasonCodes } from '@/lib/api/reference'
 import type { CaseKind } from '@/lib/api/types/cases'
-import type { TargetType } from '@/lib/api/types/reference'
+import type { ReasonKind, TargetType } from '@/lib/api/types/reference'
 
 /** The required reason (ADM-T-03): only the codes that fit this action and target (design §9a.6). */
 export function ReasonCodeField({
@@ -12,7 +12,7 @@ export function ReasonCodeField({
   error,
   ...props
 }: Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
-  kind: 'violation' | 'decision'
+  kind: ReasonKind
   targetType: TargetType
   /** The case's kind, so a decision that only fits an appeal or a duplicate isn't offered elsewhere */
   caseKind?: CaseKind

@@ -26,6 +26,9 @@ export const AUDIT_ACTIONS: Record<string, { label: string; verb: string }> = {
   invite_staff: { label: 'Staff invited', verb: 'invited' },
   resend_invite: { label: 'Invite resent', verb: 'resent the invite to' },
   revoke_invite: { label: 'Invite revoked', verb: 'revoked the invite for' },
+  approve_listing: { label: 'Listing approved', verb: 'approved' },
+  reject_listing: { label: 'Listing rejected', verb: 'rejected' },
+  overturn_review: { label: 'Review overturned', verb: 'overturned the review of' },
 }
 
 /** `"Tunde Bakare hid comment C-5501"` */

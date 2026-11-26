@@ -16,6 +16,7 @@ const SWEEP_VIEWPORTS = [...VIEWPORTS, { name: '768', width: 768, height: 1024 }
 const PAGES: [RouteId, string][] = [
   ['overview', '/'],
   ['reports', '/reports'],
+  ['reviews', '/reviews'],
   // Assigned to the support agent in the seed, so every role can open it
   ['case', '/cases/NX-000202'],
   ['transaction', '/transactions/T-000301'],
@@ -23,6 +24,8 @@ const PAGES: [RouteId, string][] = [
   ['records', '/records/users/u-kunle'],
   ['records', '/records/items/I-1102'],
   ['records', '/records/listings/L-5101'],
+  // Waiting for review: photos and the review panel (design 2026-11-24)
+  ['records', '/records/listings/L-5205'],
   ['records', '/records/offers/O-6101'],
   ['records', '/records/feed/F-904'],
   ['exceptions', '/exceptions'],
@@ -95,6 +98,17 @@ describe('accessibility of open dialogs at 1440', () => {
     within(panel).getByRole('button', { name: 'Hide content' }).focus()
     await userEvent.keyboard('{Enter}')
     await screen.findByRole('dialog', { name: 'Hide content' })
+    await settled()
+    await expectNoViolations()
+  })
+
+  it('the Reject listing dialog', async () => {
+    await page.viewport(1440, 900)
+    await openConsole('/records/listings/L-5205', 'moderator')
+    const panel = await screen.findByRole('region', { name: 'Review' }, { timeout: 10_000 })
+    within(panel).getByRole('button', { name: 'Reject' }).focus()
+    await userEvent.keyboard('{Enter}')
+    await screen.findByRole('dialog', { name: 'Reject listing L-5205' })
     await settled()
     await expectNoViolations()
   })

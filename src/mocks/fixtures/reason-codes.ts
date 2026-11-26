@@ -6,6 +6,14 @@ const CONTENT: TargetType[] = ['listing', 'comment', 'feed_post', 'message']
 const PEOPLE: TargetType[] = ['account', 'case']
 const ANY: TargetType[] = ['account', 'listing', 'comment', 'feed_post', 'message', 'transaction', 'case']
 
+const rejection = (code: string, label: string): ReasonCode => ({
+  code,
+  label,
+  severity: null,
+  kind: 'rejection',
+  appliesTo: ['listing'],
+})
+
 export const REASON_CODES: ReasonCode[] = [
   {
     code: 'THREAT',
@@ -125,4 +133,13 @@ export const REASON_CODES: ReasonCode[] = [
     kind: 'decision',
     appliesTo: ['case'],
   },
+  // Listing review (design 2026-11-24 §5.3): DRAFT list for the PM to confirm. Prefixed so no code is shared with a
+  // violation code of the same idea (labels are looked up by code alone).
+  rejection('REJECT_PROHIBITED', "Item isn't allowed on NextOwn"),
+  rejection('REJECT_PHOTOS', 'Photos missing or unclear'),
+  rejection('REJECT_DEFECTS', 'Condition or defects not described'),
+  rejection('REJECT_CATEGORY', 'Wrong category'),
+  rejection('REJECT_MISLEADING', 'Price or description is misleading'),
+  rejection('REJECT_OTHER', 'Something else'),
+  { code: 'REVIEW_ERROR', label: 'Rejected in error', severity: null, kind: 'decision', appliesTo: ['listing'] },
 ]

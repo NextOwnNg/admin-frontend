@@ -44,6 +44,15 @@ export function timeAgo(iso: string, now: number): string {
   return formatWATDate(iso)
 }
 
+/** How long something has waited: `"Just now"`, `"45 min"`, `"3 h"` (under 48 h), then `"2 d"`. */
+export function formatWait(fromIso: string, now: number): string {
+  const elapsed = now - Date.parse(fromIso)
+  if (elapsed < MINUTE) return 'Just now'
+  if (elapsed < HOUR) return `${Math.floor(elapsed / MINUTE)} min`
+  if (elapsed < 48 * HOUR) return `${Math.floor(elapsed / HOUR)} h`
+  return `${Math.floor(elapsed / (24 * HOUR))} d`
+}
+
 /** `"3 h ago · 24 Oct 2026, 18:05 WAT"`: relative times are never shown alone. */
 export function withRelative(iso: string, now: number): string {
   return `${timeAgo(iso, now)} · ${formatWAT(iso)}`

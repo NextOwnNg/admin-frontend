@@ -4,6 +4,7 @@ import { ACTIVE_CASE_STATUSES, SEVERITIES, type Severity } from '@/lib/copy/stat
 import type { Overview } from '@/lib/api/types/reference'
 import type { CaseRecord } from '@/mocks/seed'
 import { auditDb, page } from '@/mocks/db/audit'
+import { reviewsDb } from '@/mocks/db/reviews'
 import { droppedAnswers, reseed, store } from '@/mocks/db/store'
 import { transactionsDb } from '@/mocks/db/transactions'
 
@@ -126,6 +127,8 @@ export const casesDb = {
       ) as Record<Severity, number>,
       overdueCount: overdue.length,
       oldestOverdue: overdue.slice(0, 5).map((c) => toSummary(c, now)),
+      // Listing review is for moderators and administrators (design 2026-11-24 §5.1)
+      listingReviews: viewer.roles.some((r) => r === 'moderator' || r === 'administrator') ? reviewsDb.waiting() : null,
     }
   },
 

@@ -166,7 +166,11 @@ describe('listing, offer, feed and report records (Phase C design §4.2)', () =>
     await heading('iPad Air, 4th generation')
     expect(screen.getAllByText('Removed').length).toBeGreaterThan(0)
     // Removal is stronger than hiding: the label, never the text (Phase C1 review)
-    expect(screen.getByText('Content removed by moderation')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Details' })).getByText('Content removed by moderation'),
+    ).toBeInTheDocument()
+    // Photos too: the label, never the pictures (design 2026-11-24 §5.2)
+    expect(within(screen.getByRole('region', { name: 'Photos' })).queryByRole('img')).not.toBeInTheDocument()
     expect(document.body.textContent).not.toContain('iPad Air, 4th generation. Works well')
   })
 
@@ -229,5 +233,95 @@ describe('listing, offer, feed and report records (Phase C design §4.2)', () =>
     renderWithProviders(routes, { initialPath: `/cases/${SCENARIO.overdue}` })
     const content = await screen.findByRole('region', { name: 'Reported content' })
     expect(within(content).getByRole('link', { name: /L-4388/ })).toHaveAttribute('href', '/records/listings/L-4388')
+  })
+})
+
+describe('listing photos and condition (design 2026-11-24 §5.2)', () => {
+  it("shows the listing's photos with alt text and opens a larger view", async () => {
+    await signInAs('moderator')
+    const { container } = renderWithProviders(routes, { initialPath: '/records/listings/L-5231' })
+    await heading('Office desk')
+    const photos = within(screen.getByRole('region', { name: 'Photos' }))
+    const thumbs = await photos.findAllByRole('img')
+    expect(thumbs).toHaveLength(4)
+    expect(thumbs[0]).toHaveAccessibleName('Photo 1 of 4 of Office desk')
+    await expectNoA11yViolations(container)
+
+    await userEvent.click(photos.getByRole('button', { name: 'Open photo 1 of 4 of Office desk' }))
+    const viewer = await screen.findByRole('dialog', { name: 'Photos of Office desk' })
+    expect(within(viewer).getByRole('img')).toHaveAccessibleName('Photo 1 of 4 of Office desk')
+    await userEvent.click(within(viewer).getByRole('button', { name: 'Next photo' }))
+    expect(within(viewer).getByRole('img')).toHaveAccessibleName('Photo 2 of 4 of Office desk')
+    await expectNoA11yViolations(viewer)
+    await userEvent.keyboard('{Escape}')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('says No photos and the minimum hint', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/records/listings/L-5230' })
+    await heading('Samsung 43-inch TV')
+    const photos = within(screen.getByRole('region', { name: 'Photos' }))
+    expect(await photos.findByText('No photos')).toBeInTheDocument()
+    expect(await photos.findByText('Below the minimum of 3 photos')).toBeInTheDocument()
+  })
+
+  it('shows condition, defects, repairs and the ownership declaration', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/records/listings/L-5231' })
+    await heading('Office desk')
+    const details = within(screen.getByRole('region', { name: 'Details' }))
+    expect(details.getByText('Condition').nextElementSibling).toHaveTextContent('Used, good')
+    expect(details.getByText('Defects').nextElementSibling).toHaveTextContent('None declared')
+    expect(details.getByText('Repair history').nextElementSibling).toHaveTextContent('None declared')
+    expect(details.getByText('Owner declared lawful ownership').nextElementSibling).toHaveTextContent('Yes')
+  })
+
+  it('shows the moderation label, not photos, for a hidden listing', async () => {
+    await signInAs('moderator')
+    renderWithProviders(routes, { initialPath: '/records/listings/L-5218' })
+    await heading('AirPods Pro')
+    const photos = within(screen.getByRole('region', { name: 'Photos' }))
+    expect(photos.queryByRole('img')).not.toBeInTheDocument()
+    expect(photos.getByText('Content hidden by moderation')).toBeInTheDocument()
+  })
+
+  it('re-reads the listing before its photo links expire', async () => {
+    await signInAs('moderator')
+    const url = `${apiBaseUrl}/admin/records/listings/L-5231`
+    const { data } = await apiClient.get<ListingDetail>('/admin/records/listings/L-5231')
+    // Links that expire in 61 s: a minute before is 1 s away, so the 10 s floor applies
+    const soon = new Date(Date.now() + 61_000).toISOString()
+    let reads = 0
+    server.use(
+      http.get(url, () => {
+        reads += 1
+        return HttpResponse.json({ ...data, photos: data.photos.map((p) => ({ ...p, expiresAt: soon })) })
+      }),
+    )
+    renderWithProviders(routes, { initialPath: '/records/listings/L-5231' })
+    await heading('Office desk')
+    expect(reads).toBe(1)
+    await waitFor(() => expect(reads).toBeGreaterThan(1), { timeout: 12_000 })
+  }, 20_000)
+})
+
+describe('photo link refresh limits (final review)', () => {
+  it('does not re-read in a loop when links expire within a minute', async () => {
+    await signInAs('moderator')
+    const url = `${apiBaseUrl}/admin/records/listings/L-5231`
+    const { data } = await apiClient.get<ListingDetail>('/admin/records/listings/L-5231')
+    let reads = 0
+    server.use(
+      http.get(url, () => {
+        reads += 1
+        const soon = new Date(Date.now() + 30_000).toISOString()
+        return HttpResponse.json({ ...data, photos: data.photos.map((p) => ({ ...p, expiresAt: soon })) })
+      }),
+    )
+    renderWithProviders(routes, { initialPath: '/records/listings/L-5231' })
+    await heading('Office desk')
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+    expect(reads).toBeLessThanOrEqual(2)
   })
 })

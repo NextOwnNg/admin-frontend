@@ -9,13 +9,21 @@ describe('navItemsFor (design §7)', () => {
   })
 
   it('gives moderators the queue and record browsers', () => {
-    expect(labels(['moderator'])).toEqual(['Overview', 'Reports', 'Members', 'Listings', 'Transactions'])
+    expect(labels(['moderator'])).toEqual([
+      'Overview',
+      'Reports',
+      'Listing review',
+      'Members',
+      'Listings',
+      'Transactions',
+    ])
   })
 
   it('gives administrators everything, in sidebar order', () => {
     expect(labels(['administrator'])).toEqual([
       'Overview',
       'Reports',
+      'Listing review',
       'Members',
       'Listings',
       'Transactions',
@@ -31,6 +39,7 @@ describe('navItemsFor (design §7)', () => {
     expect(labels(['support_agent', 'moderator'])).toEqual([
       'Overview',
       'Reports',
+      'Listing review',
       'Members',
       'Listings',
       'Transactions',
@@ -45,6 +54,9 @@ describe('navItemsFor (design §7)', () => {
 
 describe('canAccess', () => {
   it('keeps staff administration for administrators (design 2026-11-21 §4.3)', () => {
+    expect(canAccess('reviews', ['support_agent'])).toBe(false)
+    expect(canAccess('reviews', ['moderator'])).toBe(true)
+    expect(canAccess('reviews', ['administrator'])).toBe(true)
     expect(canAccess('staff', ['moderator'])).toBe(false)
     expect(canAccess('staff', ['support_agent'])).toBe(false)
     expect(canAccess('staff', ['administrator'])).toBe(true)
